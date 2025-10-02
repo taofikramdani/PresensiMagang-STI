@@ -964,14 +964,11 @@
                     icon: 'success',
                     title: 'Presensi Berhasil!',
                     html: `
-                        <div class="text-left">
+                        <div class="text-center">
                             <p><strong>Waktu:</strong> ${result.data.jam_masuk || result.data.jam_keluar}</p>
                             <p><strong>Status:</strong> ${result.data.status || 'Berhasil'}</p>
                             ${result.data.keterlambatan ? `<p><strong>Keterlambatan:</strong> ${result.data.keterlambatan}</p>` : ''}
                             ${result.data.durasi_kerja ? `<p><strong>Durasi Kerja:</strong> ${result.data.durasi_kerja}</p>` : ''}
-                            <p class="text-sm text-gray-600 mt-2">
-                                <i class="fas fa-info-circle"></i> ${useDefaultLocation ? 'Menggunakan lokasi default' : 'Presensi tanpa foto (mode HTTP)'}
-                            </p>
                         </div>
                     `,
                     confirmButtonColor: '#10b981'
