@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'Monitoring Kegiatan - Presensi Magang')
+@section('title', 'Monitoring Kegiatan - Day-In')
 
 @section('content')
 <div class="space-y-6 p-4">

@@ -1,6 +1,6 @@
 @extends('layouts.peserta')
 
-@section('title', 'Kegiatan Harian | Presensi STI')
+@section('title', 'Kegiatan Harian | Day-In')
 
 @push('head')
 <meta name="csrf-token" content="{{ csrf_token() }}">

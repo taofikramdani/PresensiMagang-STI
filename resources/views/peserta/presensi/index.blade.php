@@ -1,6 +1,6 @@
 @extends('layouts.peserta')
 
-@section('title', 'Presensi STI')
+@section('title', 'Day-In - Presensi ')
 
 @push('styles')
 <!-- Leaflet CSS -->

@@ -1,6 +1,6 @@
 @extends('layouts.peserta')
 
-@section('title', 'Profil Saya - Presensi Magang')
+@section('title', 'Profil Saya - Day-In')
 
 @section('content')
 <div class="space-y-6">

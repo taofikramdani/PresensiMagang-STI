@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:; font-src 'self' https: data:;">
-    <title>@yield('title', 'Presensi Peserta - STI Jabar')</title>
+    <title>@yield('title', 'Presensi Peserta - Day-In')</title>
     
     @if(app()->environment('production'))
         <!-- Production/ngrok: Use Tailwind CDN + Vite JS -->

@@ -1,6 +1,6 @@
 @extends('layouts.peserta')
 
-@section('title', 'Riwayat | Presensi STI')
+@section('title', 'Riwayat | Day-In')
 
 @push('styles')
 <style>

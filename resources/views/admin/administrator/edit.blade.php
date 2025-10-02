@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'Edit Administrator - Presensi Magang')
+@section('title', 'Edit Administrator - Day-In')
 
 @section('content')
 <div class="space-y-6">

@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'Tambah Jam Kerja - Presensi Magang')
+@section('title', 'Tambah Jam Kerja - Day-In')
 
 @section('content')
 <div class="bg-white rounded-lg shadow-sm overflow-hidden">
