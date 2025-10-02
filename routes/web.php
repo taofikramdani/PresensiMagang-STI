@@ -167,6 +167,8 @@ Route::middleware(['auth', 'role:peserta'])->prefix('peserta')->name('peserta.')
         Route::post('/store', [App\Http\Controllers\Peserta\PresensiController::class, 'store'])->name('store');
         Route::post('/checkin', [App\Http\Controllers\Peserta\PresensiController::class, 'checkin'])->name('checkin');
         Route::post('/checkout', [App\Http\Controllers\Peserta\PresensiController::class, 'checkout'])->name('checkout');
+        Route::get('/default-location', [App\Http\Controllers\Peserta\PresensiController::class, 'getDefaultLocation'])->name('default-location');
+        Route::get('/ssl-status', [App\Http\Controllers\Peserta\PresensiController::class, 'checkSSLStatus'])->name('ssl-status');
     });
     
     // Check kegiatan harian route

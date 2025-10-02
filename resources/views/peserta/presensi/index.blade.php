@@ -372,6 +372,9 @@
     };
     let cameraStream = null;
     let currentAction = null;
+    let isHttps = false;
+    let useDefaultLocation = false;
+    let defaultLocation = null;
 
     // Helper function to get Jakarta time
     function getJakartaTime() {
@@ -387,6 +390,81 @@
         const minutes = String(jakartaTime.getMinutes()).padStart(2, '0');
         const seconds = String(jakartaTime.getSeconds()).padStart(2, '0');
         return `${hours}:${minutes}:${seconds}`;
+    }
+
+    // Check SSL status
+    async function checkSSLStatus() {
+        try {
+            isHttps = window.location.protocol === 'https:';
+            console.log('SSL Status:', isHttps ? 'HTTPS enabled' : 'HTTP only');
+            return isHttps;
+        } catch (error) {
+            console.error('Error checking SSL status:', error);
+            return false;
+        }
+    }
+
+    // Get default location from server
+    async function getDefaultLocation() {
+        try {
+            const response = await fetch('{{ route("peserta.presensi.default-location") }}', {
+                method: 'GET',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to get default location');
+            }
+
+            const result = await response.json();
+            if (result.success) {
+                defaultLocation = result.data;
+                console.log('Default location loaded:', defaultLocation);
+                return defaultLocation;
+            } else {
+                throw new Error(result.message || 'Failed to get default location');
+            }
+        } catch (error) {
+            console.error('Error getting default location:', error);
+            return null;
+        }
+    }
+
+    // Initialize location based on SSL status
+    async function initializeLocation() {
+        await checkSSLStatus();
+        await getDefaultLocation();
+
+        if (isHttps) {
+            console.log('HTTPS detected - Using GPS location');
+            document.getElementById('locationStatus').innerHTML = 
+                '<i class="fas fa-satellite-dish mr-1"></i>Menggunakan GPS...';
+            getCurrentLocation();
+        } else {
+            console.log('HTTP detected - Using default location');
+            useDefaultLocation = true;
+            
+            if (defaultLocation) {
+                userLocation = {
+                    lat: parseFloat(defaultLocation.latitude),
+                    lng: parseFloat(defaultLocation.longitude),
+                    accuracy: 0
+                };
+                
+                document.getElementById('locationStatus').innerHTML = 
+                    '<i class="fas fa-map-marker-alt mr-1 text-blue-600"></i>Lokasi Default';
+                    
+                updateLocationDisplay();
+                updateUserMarker();
+                calculateDistance();
+            } else {
+                document.getElementById('locationStatus').innerHTML = 
+                    '<i class="fas fa-exclamation-triangle mr-1 text-red-600"></i>Lokasi tidak tersedia';
+            }
+        }
     }
 
     // Initialize Leaflet Map
@@ -422,11 +500,19 @@
         }).addTo(map);
 
         // Start GPS
-        getCurrentLocation();
+        initializeLocation();
     }
 
     // Get current location
     function getCurrentLocation() {
+        // Only try GPS if HTTPS is available
+        if (!isHttps) {
+            console.log('GPS not available - using default location');
+            document.getElementById('locationStatus').innerHTML = 
+                '<i class="fas fa-info-circle mr-1 text-blue-600"></i>Menggunakan lokasi default';
+            return;
+        }
+
         document.getElementById('locationStatus').innerHTML = 
             '<i class="fas fa-satellite-dish mr-1"></i>Mencari GPS...';
             
@@ -439,9 +525,12 @@
                         accuracy: position.coords.accuracy
                     };
                     
+                    console.log('GPS location found:', userLocation);
+                    
                     updateUserMarker();
                     calculateDistance();
                     updateMapView();
+                    updateLocationDisplay();
                     
                     const accuracy = position.coords.accuracy < 20 ? 'Tinggi' : 'Rendah';
                     document.getElementById('locationStatus').innerHTML = 
@@ -452,15 +541,18 @@
                     let errorMsg = 'GPS Error';
                     
                     if (error.code === 1) {
-                        errorMsg = 'Izin ditolak';
+                        errorMsg = 'Izin ditolak - menggunakan lokasi default';
                     } else if (error.code === 2) {
-                        errorMsg = 'Posisi tidak tersedia';
+                        errorMsg = 'Posisi tidak tersedia - menggunakan lokasi default';
                     } else if (error.code === 3) {
-                        errorMsg = 'Timeout';
+                        errorMsg = 'Timeout - menggunakan lokasi default';
                     }
                     
                     document.getElementById('locationStatus').innerHTML = 
-                        `<i class="fas fa-exclamation-triangle mr-1 text-red-600"></i>${errorMsg}`;
+                        `<i class="fas fa-exclamation-triangle mr-1 text-orange-600"></i>${errorMsg}`;
+                    
+                    // Fallback to default location if GPS fails
+                    useDefaultLocationFallback();
                 },
                 {
                     enableHighAccuracy: true,
@@ -470,7 +562,57 @@
             );
         } else {
             document.getElementById('locationStatus').innerHTML = 
-                '<i class="fas fa-times-circle mr-1 text-red-600"></i>GPS Tidak Didukung';
+                '<i class="fas fa-times-circle mr-1 text-red-600"></i>GPS Tidak Didukung - menggunakan lokasi default';
+            useDefaultLocationFallback();
+        }
+    }
+
+    // Fallback to default location when GPS fails
+    function useDefaultLocationFallback() {
+        useDefaultLocation = true;
+        
+        if (defaultLocation) {
+            userLocation = {
+                lat: parseFloat(defaultLocation.latitude),
+                lng: parseFloat(defaultLocation.longitude),
+                accuracy: 0
+            };
+            
+            console.log('Using default location fallback:', userLocation);
+            
+            updateUserMarker();
+            calculateDistance();
+            updateMapView();
+            updateLocationDisplay();
+        }
+    }
+
+    // Update location display in UI
+    function updateLocationDisplay() {
+        const gpsStatusElement = document.getElementById('gpsStatus');
+        if (gpsStatusElement) {
+            if (useDefaultLocation) {
+                gpsStatusElement.innerHTML = '<span class="text-blue-600 font-medium">Lokasi Default</span>';
+            } else {
+                gpsStatusElement.innerHTML = '<span class="text-green-600 font-medium">GPS Aktif</span>';
+            }
+        }
+
+        // Show location details if element exists
+        const locationDetails = document.getElementById('locationDetails');
+        if (locationDetails && userLocation) {
+            locationDetails.classList.remove('hidden');
+            
+            const userCoordinates = document.getElementById('userCoordinates');
+            const userAccuracy = document.getElementById('userAccuracy');
+            
+            if (userCoordinates) {
+                userCoordinates.textContent = `${userLocation.lat.toFixed(6)}, ${userLocation.lng.toFixed(6)}`;
+            }
+            
+            if (userAccuracy) {
+                userAccuracy.textContent = useDefaultLocation ? 'Default' : `±${Math.round(userLocation.accuracy)}m`;
+            }
         }
     }
 
@@ -617,26 +759,36 @@
         if (!userLocation) {
             Swal.fire({
                 icon: 'warning',
-                title: 'GPS Belum Siap',
-                text: 'Lokasi belum ditemukan. Mohon tunggu GPS aktif.',
+                title: 'Lokasi Belum Siap',
+                text: 'Lokasi belum ditemukan. Mohon tunggu lokasi dimuat.',
                 confirmButtonColor: '#3085d6'
             });
             return;
         }
         
-        const distance = calculateDistance();
-        if (distance > officeLocation.radius) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Lokasi Terlalu Jauh',
-                text: `Anda terlalu jauh dari kantor (${Math.round(distance)}m). Maksimal ${officeLocation.radius}m.`,
-                confirmButtonColor: '#d33'
-            });
-            return;
+        // If using default location, skip distance check
+        if (!useDefaultLocation) {
+            const distance = calculateDistance();
+            if (distance > officeLocation.radius) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lokasi Terlalu Jauh',
+                    text: `Anda terlalu jauh dari kantor (${Math.round(distance)}m). Maksimal ${officeLocation.radius}m.`,
+                    confirmButtonColor: '#d33'
+                });
+                return;
+            }
         }
         
         currentAction = 'checkin';
-        openCameraModal();
+        
+        // If HTTPS is available, use camera
+        if (isHttps) {
+            openCameraModal();
+        } else {
+            // Skip camera and directly submit without photo
+            submitPresensiWithoutPhoto();
+        }
     }
 
     // Check out function  
@@ -644,22 +796,25 @@
         if (!userLocation) {
             Swal.fire({
                 icon: 'warning',
-                title: 'GPS Belum Siap',
-                text: 'Lokasi belum ditemukan. Mohon tunggu GPS aktif.',
+                title: 'Lokasi Belum Siap',
+                text: 'Lokasi belum ditemukan. Mohon tunggu lokasi dimuat.',
                 confirmButtonColor: '#3085d6'
             });
             return;
         }
         
-        const distance = calculateDistance();
-        if (distance > officeLocation.radius) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Lokasi Terlalu Jauh',
-                text: `Anda terlalu jauh dari kantor (${Math.round(distance)}m). Maksimal ${officeLocation.radius}m.`,
-                confirmButtonColor: '#d33'
-            });
-            return;
+        // If using default location, skip distance check
+        if (!useDefaultLocation) {
+            const distance = calculateDistance();
+            if (distance > officeLocation.radius) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lokasi Terlalu Jauh',
+                    text: `Anda terlalu jauh dari kantor (${Math.round(distance)}m). Maksimal ${officeLocation.radius}m.`,
+                    confirmButtonColor: '#d33'
+                });
+                return;
+            }
         }
         
         // Cek kegiatan harian sebelum checkout
@@ -701,7 +856,14 @@
                 if (result.hasKegiatan) {
                     // Sudah ada kegiatan, lanjut checkout
                     currentAction = 'checkout';
-                    openCameraModal();
+                    
+                    // If HTTPS is available, use camera
+                    if (isHttps) {
+                        openCameraModal();
+                    } else {
+                        // Skip camera and directly submit without photo
+                        submitPresensiWithoutPhoto();
+                    }
                 } else {
                     // Belum ada kegiatan, tampilkan warning
                     Swal.fire({
@@ -753,6 +915,84 @@
                 text: 'Tidak dapat mengecek status kegiatan. Periksa koneksi internet dan coba lagi.',
                 confirmButtonText: 'OK',
                 confirmButtonColor: '#3085d6'
+            });
+        }
+    }
+
+    // Submit presensi without photo (for HTTP mode)
+    async function submitPresensiWithoutPhoto() {
+        if (!userLocation) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Lokasi Belum Siap',
+                text: 'Lokasi belum ditemukan. Mohon tunggu lokasi dimuat.',
+                confirmButtonColor: '#3085d6'
+            });
+            return;
+        }
+
+        // Show loading
+        Swal.fire({
+            title: 'Memproses Presensi...',
+            text: 'Mohon tunggu sebentar',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            allowEnterKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        const formData = new FormData();
+        formData.append('latitude', userLocation.lat);
+        formData.append('longitude', userLocation.lng);
+        formData.append('action', currentAction);
+        formData.append('use_default_location', useDefaultLocation ? '1' : '0');
+        formData.append('_token', document.querySelector('meta[name="csrf-token"]').content);
+
+        try {
+            const response = await fetch('{{ route("peserta.presensi.store") }}', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Presensi Berhasil!',
+                    html: `
+                        <div class="text-left">
+                            <p><strong>Waktu:</strong> ${result.data.jam_masuk || result.data.jam_keluar}</p>
+                            <p><strong>Status:</strong> ${result.data.status || 'Berhasil'}</p>
+                            ${result.data.keterlambatan ? `<p><strong>Keterlambatan:</strong> ${result.data.keterlambatan}</p>` : ''}
+                            ${result.data.durasi_kerja ? `<p><strong>Durasi Kerja:</strong> ${result.data.durasi_kerja}</p>` : ''}
+                            <p class="text-sm text-gray-600 mt-2">
+                                <i class="fas fa-info-circle"></i> ${useDefaultLocation ? 'Menggunakan lokasi default' : 'Presensi tanpa foto (mode HTTP)'}
+                            </p>
+                        </div>
+                    `,
+                    confirmButtonColor: '#10b981'
+                }).then(() => {
+                    location.reload();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Presensi Gagal',
+                    text: result.message,
+                    confirmButtonColor: '#d33'
+                });
+            }
+        } catch (error) {
+            console.error('Error submitting presensi:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Terjadi Kesalahan',
+                text: 'Gagal memproses presensi. Silakan coba lagi.',
+                confirmButtonColor: '#d33'
             });
         }
     }
@@ -912,6 +1152,7 @@
         formData.append('longitude', userLocation.lng);
         formData.append('action', currentAction);
         formData.append('photo', photoBlob, 'presensi.jpg');
+        formData.append('use_default_location', useDefaultLocation ? '1' : '0');
         formData.append('_token', document.querySelector('meta[name="csrf-token"]').content);
 
         try {
@@ -996,8 +1237,12 @@
             initMap();
         }, 500);
         
-        // Auto refresh location every 30 seconds
-        setInterval(getCurrentLocation, 30000);
+        // Auto refresh location every 30 seconds (only if HTTPS)
+        setInterval(() => {
+            if (isHttps) {
+                getCurrentLocation();
+            }
+        }, 30000);
     });
 </script>
 @endpush

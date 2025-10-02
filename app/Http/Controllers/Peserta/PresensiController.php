@@ -82,7 +82,8 @@ class PresensiController extends Controller
             'latitude' => 'required|numeric',
             'longitude' => 'required|numeric',
             'action' => 'required|in:checkin,checkout',
-            'photo' => 'required|file|mimes:jpeg,png,jpg|max:2048'
+            'photo' => 'nullable|file|mimes:jpeg,png,jpg|max:2048',
+            'use_default_location' => 'nullable|boolean'
         ]);
         
         try {
@@ -112,23 +113,36 @@ class PresensiController extends Controller
                 ], 400);
             }
             
-            // Calculate distance
-            $distance = $this->calculateDistance(
-                $request->latitude,
-                $request->longitude,
-                $lokasi->latitude,
-                $lokasi->longitude
-            );
+            // Check if within radius (skip validation if using default location)
+            $useDefaultLocation = $request->boolean('use_default_location', false);
             
-            // Check if within radius
-            if ($distance > $lokasi->radius) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "Anda terlalu jauh dari lokasi presensi (jarak: " . round($distance) . "m, maksimal: {$lokasi->radius}m)"
-                ], 400);
+            if (!$useDefaultLocation) {
+                // Calculate distance only if not using default location
+                $distance = $this->calculateDistance(
+                    $request->latitude,
+                    $request->longitude,
+                    $lokasi->latitude,
+                    $lokasi->longitude
+                );
+                
+                // Check if within radius
+                if ($distance > $lokasi->radius) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Anda terlalu jauh dari lokasi presensi (jarak: " . round($distance) . "m, maksimal: {$lokasi->radius}m)"
+                    ], 400);
+                }
+            } else {
+                // When using default location, set distance to 0 for acceptance
+                $distance = 0;
+                // Use peserta's assigned location coordinates
+                $request->merge([
+                    'latitude' => $lokasi->latitude,
+                    'longitude' => $lokasi->longitude
+                ]);
             }
             
-            // Handle photo upload
+            // Handle photo upload (now optional)
             $photoPath = null;
             if ($request->hasFile('photo')) {
                 $photo = $request->file('photo');
@@ -410,5 +424,54 @@ class PresensiController extends Controller
                 'message' => 'Terjadi kesalahan saat mengecek kegiatan'
             ]);
         }
+    }
+    
+    /**
+     * Get peserta's default location coordinates
+     */
+    public function getDefaultLocation()
+    {
+        try {
+            $user = Auth::user();
+            $peserta = Peserta::with('lokasi')->where('user_id', $user->id)->first();
+            
+            if (!$peserta || !$peserta->lokasi) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Lokasi magang tidak ditemukan'
+                ], 400);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'latitude' => $peserta->lokasi->latitude,
+                    'longitude' => $peserta->lokasi->longitude,
+                    'radius' => $peserta->lokasi->radius,
+                    'nama_lokasi' => $peserta->lokasi->nama_lokasi,
+                    'alamat' => $peserta->lokasi->alamat
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Check if current connection is using HTTPS
+     */
+    public function checkSSLStatus()
+    {
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'is_https' => request()->secure() || request()->header('x-forwarded-proto') === 'https',
+                'protocol' => request()->secure() || request()->header('x-forwarded-proto') === 'https' ? 'https' : 'http'
+            ]
+        ]);
     }
 }
