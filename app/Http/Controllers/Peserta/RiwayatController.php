@@ -176,21 +176,44 @@ class RiwayatController extends Controller
             return redirect()->route('peserta.dashboard')->with('error', 'Data peserta tidak ditemukan.');
         }
 
-        // Get filter bulan dari request atau default bulan ini
-        $bulan = $request->get('bulan', Carbon::now('Asia/Jakarta')->format('Y-m'));
-        $startDate = Carbon::createFromFormat('Y-m', $bulan)->startOfMonth();
-        $endDate = Carbon::createFromFormat('Y-m', $bulan)->endOfMonth();
-
-        // Batasi berdasarkan periode magang peserta
-        $tanggalMulaiMagang = $peserta->tanggal_mulai ? Carbon::parse($peserta->tanggal_mulai) : null;
-        $tanggalSelesaiMagang = $peserta->tanggal_selesai ? Carbon::parse($peserta->tanggal_selesai) : null;
-
-        // Adjust start and end date berdasarkan periode magang
-        if ($tanggalMulaiMagang && $startDate->lt($tanggalMulaiMagang)) {
-            $startDate = $tanggalMulaiMagang->copy();
+        // Validasi periode magang peserta
+        if (!$peserta->tanggal_mulai || !$peserta->tanggal_selesai) {
+            return redirect()->back()->with('error', 'Periode magang peserta belum ditentukan.');
         }
-        if ($tanggalSelesaiMagang && $endDate->gt($tanggalSelesaiMagang)) {
-            $endDate = $tanggalSelesaiMagang->copy();
+
+        $tanggalMulaiMagang = Carbon::parse($peserta->tanggal_mulai);
+        $tanggalSelesaiMagang = Carbon::parse($peserta->tanggal_selesai);
+        $today = Carbon::now('Asia/Jakarta')->startOfDay();
+        
+        // Tentukan periode export berdasarkan filter atau default periode magang
+        $bulan = $request->get('bulan');
+        
+        if ($bulan) {
+            // Jika ada filter bulan, gunakan filter dengan batasan periode magang
+            $filterStartDate = Carbon::createFromFormat('Y-m', $bulan)->startOfMonth();
+            $filterEndDate = Carbon::createFromFormat('Y-m', $bulan)->endOfMonth();
+            
+            // Batasi filter berdasarkan periode magang
+            $startDate = $filterStartDate->lt($tanggalMulaiMagang) ? $tanggalMulaiMagang->copy() : $filterStartDate;
+            $endDate = $filterEndDate->gt($tanggalSelesaiMagang) ? $tanggalSelesaiMagang->copy() : $filterEndDate;
+            
+            // Jangan export data melebihi hari ini
+            $endDate = $endDate->gt($today) ? $today->copy() : $endDate;
+            
+            $jenisLaporan = 'Bulanan';
+            $periode = Carbon::createFromFormat('Y-m', $bulan)->locale('id')->isoFormat('MMMM Y');
+        } else {
+            // Jika tidak ada filter, gunakan seluruh periode magang (termasuk tanggal yang belum berjalan)
+            $startDate = $tanggalMulaiMagang->copy();
+            $endDate = $tanggalSelesaiMagang->copy(); // Tampilkan semua tanggal dalam periode magang
+            
+            $jenisLaporan = 'Periode Magang';
+            $periode = $startDate->format('d/m/Y') . ' - ' . $endDate->format('d/m/Y');
+        }
+
+        // Validasi tanggal yang akan di-export
+        if ($startDate->gt($endDate)) {
+            return redirect()->back()->with('error', 'Periode yang dipilih tidak valid.');
         }
 
         // Get riwayat presensi dalam periode yang sudah disesuaikan
@@ -202,22 +225,21 @@ class RiwayatController extends Controller
                 return Carbon::parse($item->tanggal)->toDateString();
             }); // Key by tanggal dalam format Y-m-d
 
-        // Generate complete data dengan alpha untuk hari kerja yang tidak ada presensi
+        // Generate complete data dengan semua tanggal dalam periode
         $riwayatPresensi = collect();
-        $today = Carbon::now('Asia/Jakarta')->toDateString();
         
         $currentDate = $startDate->copy();
         while ($currentDate->lte($endDate)) {
             $tanggalString = $currentDate->toDateString();
             
-            // Skip weekend (Sabtu=6, Minggu=0)
+            // Skip weekend (Sabtu=6, Minggu=0) - bisa disesuaikan dengan aturan jam kerja
             if (!in_array($currentDate->dayOfWeek, [0, 6])) {
                 if ($presensiData->has($tanggalString)) {
                     // Ada data presensi
                     $riwayatPresensi->push($presensiData[$tanggalString]);
                 } else {
                     // Tidak ada data presensi
-                    if ($tanggalString <= $today) {
+                    if ($tanggalString <= $today->toDateString()) {
                         // Tanggal sudah lewat atau hari ini, tandai sebagai alpha
                         $alphaEntry = [
                             'tanggal' => $tanggalString,
@@ -231,13 +253,13 @@ class RiwayatController extends Controller
                         
                         $riwayatPresensi->push((object) $alphaEntry); // Convert to object
                     } else {
-                        // Tanggal belum datang, buat entry kosong
+                        // Tanggal belum datang, buat entry kosong (tetap tampilkan)
                         $emptyEntry = [
                             'tanggal' => $tanggalString,
                             'jam_masuk' => null,
                             'jam_keluar' => null,
                             'status' => null,
-                            'keterangan' => null,
+                            'keterangan' => 'Belum berjalan',
                             'lokasi' => $peserta->lokasi, // Default lokasi peserta
                             'is_future_entry' => true // Flag untuk identifikasi
                         ];
@@ -250,24 +272,16 @@ class RiwayatController extends Controller
             $currentDate->addDay();
         }
 
-        // Hitung statistik bulan ini
+        // Hitung statistik periode export
         $statistik = $this->hitungStatistik($peserta->id, $startDate, $endDate);
-
-        // Format periode untuk display
-        $periode = Carbon::createFromFormat('Y-m', $bulan)->locale('id')->isoFormat('MMMM Y');
         
-        // Format periode magang
-        $periodeMagang = null;
-        if ($peserta->tanggal_mulai && $peserta->tanggal_selesai) {
-            $tanggalMulai = Carbon::parse($peserta->tanggal_mulai);
-            $tanggalSelesai = Carbon::parse($peserta->tanggal_selesai);
-            $periodeMagang = $tanggalMulai->format('d/m/Y') . ' - ' . $tanggalSelesai->format('d/m/Y');
-        }
+        // Format periode magang lengkap untuk informasi
+        $periodeMagang = $tanggalMulaiMagang->format('d/m/Y') . ' - ' . $tanggalSelesaiMagang->format('d/m/Y');
 
         // Load peserta with lokasi relationship
         $peserta->load('lokasi');
         
-        // Load PDF view
+        // Load PDF view dengan data yang sudah disesuaikan
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('peserta.riwayat.pdf', compact(
             'riwayatPresensi',
             'statistik',
@@ -275,13 +289,19 @@ class RiwayatController extends Controller
             'periode',
             'startDate',
             'endDate',
-            'periodeMagang'
+            'periodeMagang',
+            'jenisLaporan'
         ));
 
         // Set paper size dan orientation
         $pdf->setPaper('A4', 'portrait');
         
-        $filename = 'Rekap_Presensi_' . $peserta->nama_lengkap . '_' . $bulan . '.pdf';
+        // Generate filename berdasarkan jenis laporan
+        if ($bulan) {
+            $filename = 'Rekap_Presensi_' . $peserta->nama_lengkap . '_' . $bulan . '.pdf';
+        } else {
+            $filename = 'Rekap_Presensi_' . $peserta->nama_lengkap . '_Periode_Magang.pdf';
+        }
         
         return $pdf->download($filename);
     }

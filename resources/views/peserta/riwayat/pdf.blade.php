@@ -167,6 +167,7 @@
         .status-izin { background: #fff; color: #333;  }
         .status-sakit { background: #fff; color: #333;  }
         .status-alpha { background: #fff; color: #333;  }
+        .status-future { background: #fff; color: #999; font-style: italic; }
         
         .footer {
             margin-top: 30px;
@@ -253,7 +254,13 @@
     <!-- Document Title -->
     <div class="document-title">
         <h1>LAPORAN REKAP PRESENSI</h1>
-        <div class="periode">Periode {{ $periode }}</div>
+        <div class="periode">
+            @if(isset($jenisLaporan) && $jenisLaporan == 'Periode Magang')
+                Periode Magang: {{ $periode }}
+            @else
+                Periode {{ $periode }}
+            @endif
+        </div>
     </div>
 
     <!-- Informasi Peserta -->
@@ -304,6 +311,17 @@
                 </div>
             </div>
             <div class="info-row">
+                <div class="info-label">Jenis Laporan</div>
+                <div class="info-colon">:</div>
+                <div class="info-value">
+                    @if(isset($jenisLaporan))
+                        {{ $jenisLaporan }}
+                    @else
+                        Bulanan
+                    @endif
+                </div>
+            </div>
+            <div class="info-row">
                 <div class="info-label">Periode Laporan</div>
                 <div class="info-colon">:</div>
                 <div class="info-value">{{ $startDate->format('d/m/Y') }} - {{ $endDate->format('d/m/Y') }}</div>
@@ -311,6 +329,14 @@
         </div>
     </div>
 
+    @if(isset($jenisLaporan) && $jenisLaporan == 'Periode Magang')
+    <!-- Keterangan untuk Periode Magang -->
+    <div style="margin-bottom: 15px; padding: 8px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px;">
+        <div style="font-size: 10px; color: #6c757d;">
+            <strong>Keterangan:</strong> Data menampilkan seluruh periode magang. Tanggal yang belum berjalan ditampilkan dengan data kosong (-).
+        </div>
+    </div>
+    @endif
 
     <!-- Tabel Detail Presensi -->
     <table class="presensi-table">
@@ -352,6 +378,8 @@
                         <span class="status-badge status-{{ $presensi->status }}">
                             {{ ucfirst($presensi->status) }}
                         </span>
+                    @elseif(isset($presensi->is_future_entry) && $presensi->is_future_entry)
+                        <span class="status-badge status-future">-</span>
                     @else
                         -
                     @endif
@@ -365,6 +393,8 @@
                 </td>
                 <td>
                     @if($presensi->status)
+                        {{ $presensi->keterangan ?? '-' }}
+                    @elseif(isset($presensi->is_future_entry) && $presensi->is_future_entry)
                         {{ $presensi->keterangan ?? '-' }}
                     @else
                         -

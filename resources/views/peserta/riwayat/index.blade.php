@@ -129,6 +129,12 @@
                     <i class="fas fa-chart-bar mr-2"></i>
                     <span>Total Hari Kerja: {{ $statistik['total_hari_kerja'] }} hari</span>
                 </div>
+                @if($peserta->tanggal_mulai && $peserta->tanggal_selesai)
+                <div class="flex items-center text-sm text-blue-600">
+                    <i class="fas fa-calendar-alt mr-2"></i>
+                    <span>Periode Magang: {{ \Carbon\Carbon::parse($peserta->tanggal_mulai)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($peserta->tanggal_selesai)->format('d/m/Y') }}</span>
+                </div>
+                @endif
             </div>
         </div>
         
@@ -147,11 +153,22 @@
                 </button>
             </form>
             
-            <!-- Export PDF Button -->
-            <a href="{{ route('peserta.riwayat.export-pdf', ['bulan' => $bulan]) }}" 
-               class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-colors duration-200 flex items-center justify-center">
-                <i class="fas fa-file-pdf mr-2"></i>Export PDF
-            </a>
+            <!-- Export Buttons -->
+            <div class="flex space-x-2">
+                <!-- Export PDF Bulanan -->
+                <a href="{{ route('peserta.riwayat.export-pdf', ['bulan' => $bulan]) }}" 
+                   class="px-3 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-colors duration-200 flex items-center justify-center"
+                   title="Export presensi untuk bulan {{ \Carbon\Carbon::createFromFormat('Y-m', $bulan)->locale('id')->isoFormat('MMMM Y') }}">
+                    <i class="fas fa-file-pdf mr-2"></i>Export Bulan
+                </a>
+                
+                <!-- Export PDF Periode Magang -->
+                <a href="{{ route('peserta.riwayat.export-pdf') }}" 
+                   class="px-3 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors duration-200 flex items-center justify-center"
+                   title="Export presensi untuk seluruh periode magang">
+                    <i class="fas fa-calendar-alt mr-2"></i>Export Periode
+                </a>
+            </div>
         </div>
     </div>
 
