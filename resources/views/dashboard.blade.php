@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'Dashboard - Presensi Magang')
+@section('title', 'Dashboard - Day-In')
 
 @section('content')
 <div class="bg-white rounded-lg shadow-sm overflow-hidden">
