@@ -112,6 +112,7 @@ body {
 /* Presensi Title */
 .presensi-title {
     position: relative;
+    font-weight: bold;
     z-index: 1;
 }
 
