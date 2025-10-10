@@ -147,6 +147,14 @@ class PengajuanPresensiController extends Controller
 
         $pengajuan->delete();
 
+        // Check if request expects JSON (AJAX request)
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Pengajuan presensi berhasil dihapus.'
+            ]);
+        }
+
         return redirect()->back()->with('success_presensi', 'Pengajuan presensi berhasil dihapus.');
     }
 

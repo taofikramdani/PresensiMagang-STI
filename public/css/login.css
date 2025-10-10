@@ -116,6 +116,15 @@ body {
     z-index: 1;
 }
 
+.presensi-title h1 {
+    font-size: 3.5rem; 
+    font-weight: 800;
+    color: 	#14a2ba;
+    letter-spacing: -0.02em;
+    margin-bottom: 15px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
 @keyframes bounce {
     0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
     40% { transform: translateY(-5px); }
@@ -252,6 +261,10 @@ body {
         max-width: 160px;
     }
 
+    .presensi-title h1 {
+        font-size: 2.5rem; /* Ukuran untuk tablet */
+    }
+
     .presensi-title,.welcome-text,.text-muted{
         font-size: 14px;
         font-weight: 500;
@@ -278,6 +291,11 @@ body {
     .logo-box {
         padding: 8px 15px;
         font-size: 14px;
+    }
+    
+    .presensi-title h1 {
+        font-size: 2rem; /* Ukuran untuk mobile */
+        margin-bottom: 10px;
     }
     
     .pln-logo {

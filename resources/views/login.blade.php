@@ -36,7 +36,8 @@
                         </div>
                         <div class="presensi-title">
                             <h1 class="mb-2">
-                                Day-In
+                                <i class="fas fa-sign-in-alt"></i>
+                                Day In
                             </h1>
                             <p class="welcome-text">Daily Activity of Internship</p>
                         </div>

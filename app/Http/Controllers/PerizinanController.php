@@ -258,17 +258,26 @@ class PerizinanController extends Controller
     {
         // Hanya bisa hapus jika status masih pending
         if ($perizinan->status != 'pending') {
+            if (request()->expectsJson()) {
+                return response()->json(['message' => 'Perizinan yang sudah diproses tidak dapat dihapus.'], 400);
+            }
             return redirect()->route('peserta.izin.index')->with('error', 'Perizinan yang sudah diproses tidak dapat dihapus.');
         }
 
         // Hanya pemilik perizinan yang bisa hapus
         $peserta = Auth::user()->peserta;
         if (!$peserta || $perizinan->peserta_id != $peserta->id) {
+            if (request()->expectsJson()) {
+                return response()->json(['message' => 'Anda tidak memiliki akses untuk menghapus perizinan ini.'], 403);
+            }
             return redirect()->route('peserta.izin.index')->with('error', 'Anda tidak memiliki akses untuk menghapus perizinan ini.');
         }
 
         $perizinan->delete();
 
+        if (request()->expectsJson()) {
+            return response()->json(['message' => 'Perizinan berhasil dihapus.'], 200);
+        }
         return redirect()->route('peserta.izin.index')->with('success', 'Perizinan berhasil dihapus.');
     }
 
