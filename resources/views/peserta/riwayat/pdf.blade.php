@@ -329,14 +329,6 @@
         </div>
     </div>
 
-    @if(isset($jenisLaporan) && $jenisLaporan == 'Periode Magang')
-    <!-- Keterangan untuk Periode Magang -->
-    <div style="margin-bottom: 15px; padding: 8px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px;">
-        <div style="font-size: 10px; color: #6c757d;">
-            <strong>Keterangan:</strong> Data menampilkan seluruh periode magang. Tanggal yang belum berjalan ditampilkan dengan data kosong (-).
-        </div>
-    </div>
-    @endif
 
     <!-- Tabel Detail Presensi -->
     <table class="presensi-table">

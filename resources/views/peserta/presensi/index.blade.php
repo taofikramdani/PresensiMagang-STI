@@ -78,7 +78,7 @@
         }
 
         .swal2-html-container {
-            text-align: left !important;
+            text-align: center !important;
         }
 
         /* Status indicator styles */
@@ -990,9 +990,10 @@
             formData.append('_token', document.querySelector('meta[name="csrf-token"]').content);
 
             try {
-                const response = await fetch('{{ route("peserta.presensi.store") }}', {
+                const response = await fetch('{{ route("peserta.presensi.store") }}?cachebust=' + Date.now(), {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    cache: 'no-cache'
                 });
 
                 const result = await response.json();
@@ -1017,11 +1018,12 @@
                     Swal.fire({
                         icon: 'error',
                         title: 'Presensi Gagal',
-                        text: 'Anda sedang dalam status izin hari ini.',
+                        text: result.message || 'Terjadi kesalahan saat melakukan presensi.',
                         confirmButtonColor: '#d33',
                         customClass: {
-                            htmlContainer: 'text-center', 
-                            title: 'text-center',         
+                            title: 'text-center',
+                            content: 'text-center', // ini yang bikin text jadi center
+                            htmlContainer: 'text-center', // jika pakai html
                         }
                     });
                 }

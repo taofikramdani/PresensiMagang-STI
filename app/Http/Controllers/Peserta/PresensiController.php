@@ -169,11 +169,25 @@ class PresensiController extends Controller
     
     private function processCheckIn($peserta, $lokasi, $request, $photoPath, $distance)
     {
+        // Log untuk debugging
+        Log::info('ProcessCheckIn called', [
+            'peserta_id' => $peserta->id,
+            'tanggal_jakarta' => Carbon::now('Asia/Jakarta')->toDateString(),
+            'hari_sekarang' => strtolower(Carbon::now('Asia/Jakarta')->format('l'))
+        ]);
+
         // Validasi sudah absen hari ini (timezone Jakarta)
         $hariIniJakarta = Carbon::now('Asia/Jakarta')->toDateString();
         $presensiHariIni = Presensi::where('peserta_id', $peserta->id)
             ->whereDate('tanggal', $hariIniJakarta)
             ->first();
+
+        Log::info('Presensi hari ini check', [
+            'peserta_id' => $peserta->id,
+            'presensi_found' => $presensiHariIni ? 'YES' : 'NO',
+            'jam_masuk' => $presensiHariIni ? $presensiHariIni->jam_masuk : 'NULL',
+            'status' => $presensiHariIni ? $presensiHariIni->status : 'NULL'
+        ]);
 
         if ($presensiHariIni && $presensiHariIni->jam_masuk) {
             return response()->json([
@@ -182,15 +196,7 @@ class PresensiController extends Controller
             ]);
         }
 
-        // Cek apakah hari ini sudah ada status izin/sakit
-        if ($presensiHariIni && in_array($presensiHariIni->status, ['izin', 'sakit'])) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Anda sedang dalam status ' . $presensiHariIni->status . ' hari ini.'
-            ]);
-        }
-
-        // Get jam kerja aktif berdasarkan hari ini
+        // Get jam kerja aktif berdasarkan hari ini - VALIDASI INI HARUS LEBIH DULU
         $hariMap = [
             'monday' => 'senin',
             'tuesday' => 'selasa',
@@ -204,6 +210,13 @@ class PresensiController extends Controller
         $hariInggris = strtolower(Carbon::now('Asia/Jakarta')->format('l'));
         $hariIni = $hariMap[$hariInggris] ?? $hariInggris; // Convert to Indonesian format
         
+        // Debug log untuk melihat hari apa sekarang
+        Log::info('Debug hari kerja check-in', [
+            'hari_inggris' => $hariInggris,
+            'hari_indonesia' => $hariIni,
+            'tanggal' => Carbon::now('Asia/Jakarta')->format('Y-m-d l')
+        ]);
+        
         $jamKerja = JamKerja::where('is_active', true)
             ->get()
             ->first(function ($jk) use ($hariIni) {
@@ -211,10 +224,29 @@ class PresensiController extends Controller
                 return in_array($hariIni, $hariKerja);
             });
             
+        // PRIORITAS PERTAMA: Cek apakah hari ini adalah hari kerja
         if (!$jamKerja) {
+            Log::info('Hari ini bukan hari kerja - BLOCKING PRESENSI', [
+                'hari_ini' => $hariIni,
+                'jam_kerja_tersedia' => JamKerja::where('is_active', true)->get()->pluck('hari_kerja')->toArray()
+            ]);
+            
             return response()->json([
                 'success' => false,
-                'message' => "Hari ini bukan hari kerja."
+                'message' => "Hari ini {$hariIni} bukan hari kerja."
+            ]);
+        }
+
+        // BARU CEK STATUS IZIN/SAKIT setelah memastikan ini hari kerja
+        if ($presensiHariIni && in_array($presensiHariIni->status, ['izin', 'sakit'])) {
+            Log::info('Status izin/sakit detected', [
+                'peserta_id' => $peserta->id,
+                'status' => $presensiHariIni->status
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda sedang dalam status ' . $presensiHariIni->status . ' hari ini.'
             ]);
         }
 

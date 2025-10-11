@@ -95,7 +95,7 @@
             </div>
             <div class="ml-3">
                 <p class="text-sm font-medium text-yellow-700">
-                    Hari ini adalah hari libur. Tidak ada pengecekan alpa untuk tanggal {{ \Carbon\Carbon::parse($tanggal)->locale('id')->isoFormat('dddd, D MMMM Y') }}.
+                    Hari ini adalah hari libur. 
                 </p>
             </div>
         </div>
