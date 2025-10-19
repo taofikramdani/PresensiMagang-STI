@@ -5,6 +5,9 @@ class LoginHandler {
         this.directLoginBtn = document.getElementById('directLoginBtn');
         this.nameInput = document.getElementById('name'); // Changed from username
         this.passwordInput = document.getElementById('password');
+        this.captchaInput = document.getElementById('captcha');
+        this.captchaImage = document.getElementById('captcha-image');
+        this.refreshCaptchaBtn = document.getElementById('refresh-captcha');
         this.originalButtonText = this.submitBtn.innerHTML;
         
         this.init();
@@ -14,6 +17,7 @@ class LoginHandler {
         this.bindEvents();
         this.setupAnimations();
         this.setupAccessibility();
+        this.setupCaptcha();
     }
     
     bindEvents() {
@@ -25,6 +29,21 @@ class LoginHandler {
             input.addEventListener('focus', (e) => this.handleInputFocus(e));
             input.addEventListener('input', (e) => this.handleInputChange(e));
         });
+        
+        // Captcha refresh event
+        if (this.refreshCaptchaBtn) {
+            this.refreshCaptchaBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.refreshCaptcha();
+            });
+        }
+        
+        // Auto-refresh captcha on image click
+        if (this.captchaImage) {
+            this.captchaImage.addEventListener('click', () => {
+                this.refreshCaptcha();
+            });
+        }
     }
     
     async handleSubmit(e) {
@@ -326,6 +345,71 @@ class LoginHandler {
             info: 'info-circle'
         };
         return icons[type] || icons.info;
+    }
+    
+    // Captcha handling methods
+    setupCaptcha() {
+        // Limit captcha input to 6 characters
+        if (this.captchaInput) {
+            this.captchaInput.addEventListener('keypress', (e) => {
+                if (e.target.value.length >= 6 && e.key !== 'Backspace' && e.key !== 'Delete') {
+                    e.preventDefault();
+                }
+            });
+        }
+    }
+    
+    refreshCaptcha() {
+        if (!this.captchaImage || !this.refreshCaptchaBtn) return;
+        
+        // Show loading state
+        this.refreshCaptchaBtn.style.opacity = '0.6';
+        this.refreshCaptchaBtn.style.pointerEvents = 'none';
+        
+        // Add timestamp to prevent caching
+        const timestamp = new Date().getTime();
+        const newSrc = `/captcha/refresh?t=${timestamp}`;
+        
+        // Create new image to preload
+        const newImage = new Image();
+        newImage.onload = () => {
+            this.captchaImage.src = newSrc;
+            this.captchaInput.value = '';
+            this.captchaInput.focus();
+            
+            // Remove loading state
+            this.refreshCaptchaBtn.style.opacity = '1';
+            this.refreshCaptchaBtn.style.pointerEvents = 'auto';
+        };
+        
+        newImage.onerror = () => {
+            console.error('Failed to load new captcha');
+            // Remove loading state even on error
+            this.refreshCaptchaBtn.style.opacity = '1';
+            this.refreshCaptchaBtn.style.pointerEvents = 'auto';
+        };
+        
+        newImage.src = newSrc;
+    }
+    
+    // Verify captcha (for AJAX implementations)
+    async verifyCaptcha(captchaValue) {
+        try {
+            const response = await fetch('/captcha/verify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ captcha: captchaValue })
+            });
+            
+            const result = await response.json();
+            return result.valid;
+        } catch (error) {
+            console.error('Captcha verification error:', error);
+            return false;
+        }
     }
 }
 

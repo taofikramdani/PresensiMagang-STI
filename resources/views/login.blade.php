@@ -66,7 +66,7 @@
                                 @enderror
                             </div>
 
-                            <div class="form-floating mb-4">
+                            <div class="form-floating mb-3">
                                 <input type="password" class="form-control @error('password') is-invalid @enderror"
                                     id="password" name="password" placeholder="Password" required>
                                 <label for="password">
@@ -77,6 +77,28 @@
                                         {{ $message }}
                                     </div>
                                 @enderror
+                            </div>
+
+                            <!-- Captcha Section -->
+                            <div class="mb-4">
+                                <label class="form-label">
+                                    <i class=""></i>Enter Captcha
+                                </label>
+                                <div class="captcha-container">
+                                    <div class="captcha-image-container">
+                                        <img id="captcha-image" src="{{ route('captcha.generate') }}" alt="Captcha" class="captcha-image">
+                                        <button type="button" id="refresh-captcha" class="btn btn-sm btn-outline-secondary refresh-btn" title="Refresh Captcha">
+                                            <i class="fas fa-redo-alt"></i>
+                                        </button>
+                                    </div>
+                                    <input type="text" class="form-control mt-2 @error('captcha') is-invalid @enderror" 
+                                           id="captcha" name="captcha" placeholder="Enter Captcha Code" required autocomplete="off" maxlength="6">
+                                    @error('captcha')
+                                        <div class="invalid-feedback">
+                                            {{ $message }}
+                                        </div>
+                                    @enderror
+                                </div>
                             </div>
 
                             <div class="form-check mb-3">

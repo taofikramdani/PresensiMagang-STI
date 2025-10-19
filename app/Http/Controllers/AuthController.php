@@ -30,7 +30,30 @@ class AuthController extends Controller
         $request->validate([
             'name' => 'required|string',
             'password' => 'required|string',
+            'captcha' => 'required|string',
         ]);
+
+        // Validasi captcha
+        $userCaptcha = $request->input('captcha');
+        $sessionCaptcha = session('captcha');
+        
+        if (!$userCaptcha || !$sessionCaptcha || $userCaptcha !== $sessionCaptcha) {
+            // Clear captcha session untuk keamanan
+            session()->forget('captcha');
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Kode captcha tidak valid!',
+                    'errors' => ['captcha' => ['Kode captcha tidak valid!']]
+                ], 422);
+            }
+            
+            return back()->withErrors(['captcha' => 'Kode captcha tidak valid!'])->withInput();
+        }
+        
+        // Clear captcha session setelah validasi berhasil
+        session()->forget('captcha');
 
         $name = $request->input('name');
         $password = $request->input('password');

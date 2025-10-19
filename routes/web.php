@@ -8,12 +8,18 @@ use App\Http\Controllers\PembimbingController;
 use App\Http\Controllers\JamKerjaController;
 use App\Http\Controllers\LokasiController;
 use App\Http\Controllers\PerizinanController;
+use App\Http\Controllers\CaptchaController;
 
 Route::get('/', [AuthController::class, 'showLoginForm']);
 
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+
+// Captcha routes
+Route::get('/captcha', [CaptchaController::class, 'generateCaptcha'])->name('captcha.generate');
+Route::get('/captcha/refresh', [CaptchaController::class, 'refreshCaptcha'])->name('captcha.refresh');
+Route::post('/captcha/verify', [CaptchaController::class, 'verifyCaptcha'])->name('captcha.verify');
 
 // Dashboard routes with role-based access
 Route::middleware(['auth', 'role:admin,pembimbing'])->group(function () {

@@ -14,9 +14,11 @@
 /* Global Styles */
 body {
     min-height: 100vh;
+    max-height: 100vh;
     font-family: 'Public Sans', sans-serif;
     font-weight: 400;
     color: var(--text-dark);
+    overflow-x: hidden;
 }
 
 /* Login Container */
@@ -25,7 +27,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 10px;
+    padding: 5px;
+    overflow-y: auto;
 }
 
 /* Login Card */
@@ -36,7 +39,8 @@ body {
     border: 1px solid var(--border-color);
     overflow: hidden;
     width: 100%;
-    max-width: 600px;
+    max-width: 500px;
+    max-height: 95vh;
 }
 
 @keyframes slideUp {
@@ -54,7 +58,7 @@ body {
 .login-header {
     background: white;
     color: var(--text-dark);
-    padding: 40px;
+    padding: 20px 30px;
     text-align: center;
     border-bottom: 1px solid var(--border-color);
 }
@@ -81,8 +85,8 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 40px;
-    margin-bottom: 30px;
+    gap: 20px;
+    margin-bottom: 15px;
     position: relative;
 }
 
@@ -90,22 +94,22 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
-    min-height: 80px;
-    min-width: 200px;
+    padding: 12px;
+    min-height: 70px;
+    min-width: 170px;
 }
 
 .danantara-logo {
-    height: 60px;
+    height: 55px;
     width: auto;
-    max-width: 180px;
+    max-width: 160px;
     object-fit: contain;
 }
 
 .pln-logo {
-    height: 60px;
+    height: 55px;
     width: auto;
-    max-width: 180px;
+    max-width: 160px;
     object-fit: contain;
 }
 
@@ -117,11 +121,11 @@ body {
 }
 
 .presensi-title h1 {
-    font-size: 3.5rem; 
+    font-size: 3.2rem; 
     font-weight: 800;
     color: 	#14a2ba;
     letter-spacing: -0.02em;
-    margin-bottom: 15px;
+    margin-bottom: 8px;
     text-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
@@ -134,14 +138,14 @@ body {
 .welcome-text {
     position: relative;
     z-index: 1;
-    font-size: 18px;
+    font-size: 16px;
     margin-bottom: 0;
     opacity: 0.9;
 }
 
 /* Form Styles */
 .login-form {
-    padding: 40px 30px;
+    padding: 25px 30px 30px 30px;
 }
 
 .login-form text-muted {
@@ -169,7 +173,7 @@ body {
 }
 
 .form-label {
-    color: #75a9d6;
+    color: #000000;
     font-weight: 500;
     transition: var(--transition);
 }
@@ -337,4 +341,289 @@ body {
 .form-check-input:focus-visible {
     outline: 2px solid var(--secondary-blue);
     outline-offset: 2px;
+}
+
+/* Captcha Styles */
+.captcha-container {
+    position: relative;
+}
+
+.captcha-image-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.captcha-image {
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius);
+    height: 40px;
+    width: 150px;
+    display: block;
+    transition: var(--transition);
+}
+
+.captcha-image:hover {
+    border-color: var(--secondary-blue);
+}
+
+.refresh-btn {
+    height: 40px;
+    width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--border-color);
+    background: white;
+    color: var(--text-gray);
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.refresh-btn:hover {
+    background: var(--secondary-blue);
+    color: white;
+    border-color: var(--secondary-blue);
+}
+
+.refresh-btn:active {
+    background: var(--primary-blue);
+    border-color: var(--primary-blue);
+}
+
+.captcha-container .form-control {
+    letter-spacing: 1px;
+    text-align: center;
+    font-weight: 600;
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+}
+
+/* Loading state for captcha */
+.captcha-loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.captcha-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border-color);
+    border-top: 2px solid var(--primary-blue);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) and (min-width: 481px) {
+    .logo-section {
+        gap: 15px;
+    }
+    
+    .logo-box {
+        min-width: 140px;
+        min-height: 60px;
+        padding: 10px;
+    }
+    
+    .danantara-logo,
+    .pln-logo {
+        height: 45px;
+        max-width: 130px;
+    }
+    
+    .presensi-title h1 {
+        font-size: 2.8rem;
+    }
+    
+    .welcome-text {
+        font-size: 15px;
+    }
+}
+
+@media (max-height: 800px) {
+    .login-header {
+        padding: 15px 20px;
+    }
+    
+    .logo-section {
+        margin-bottom: 10px;
+        gap: 15px;
+    }
+    
+    .logo-box {
+        padding: 8px;
+        min-height: 60px;
+        min-width: 140px;
+    }
+    
+    .danantara-logo,
+    .pln-logo {
+        height: 45px;
+        max-width: 140px;
+    }
+    
+    .presensi-title h1 {
+        font-size: 2.6rem;
+        margin-bottom: 5px;
+    }
+    
+    .welcome-text {
+        font-size: 14px;
+    }
+    
+    .login-form {
+        padding: 20px 25px;
+    }
+    
+    .form-floating {
+        margin-bottom: 1rem !important;
+    }
+    
+    .captcha-container .mb-4 {
+        margin-bottom: 1rem !important;
+    }
+    
+    .form-check {
+        margin-bottom: 0.75rem !important;
+    }
+}
+
+@media (max-height: 700px) {
+    .login-container {
+        padding: 2px;
+        align-items: flex-start;
+        padding-top: 10px;
+    }
+    
+    .login-card {
+        max-height: 98vh;
+    }
+    
+    .login-header {
+        padding: 10px 15px;
+    }
+    
+    .logo-section {
+        margin-bottom: 5px;
+        gap: 10px;
+    }
+    
+    .presensi-title h1 {
+        font-size: 2.2rem;
+        margin-bottom: 3px;
+    }
+    
+    .welcome-text {
+        font-size: 13px;
+    }
+    
+    .login-form {
+        padding: 15px 20px;
+    }
+    
+    .captcha-image {
+        height: 35px;
+        width: 130px;
+    }
+    
+    .refresh-btn {
+        height: 35px;
+        width: 35px;
+    }
+}
+
+@media (max-width: 480px) {
+    .login-container {
+        padding: 5px;
+    }
+    
+    .login-card {
+        max-width: 100%;
+        margin: 0 5px;
+    }
+    
+    .logo-section {
+        flex-direction: row;
+        gap: 15px;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .logo-box {
+        min-width: 100px;
+        min-height: 50px;
+        padding: 8px;
+    }
+    
+    .danantara-logo,
+    .pln-logo {
+        height: 40px;
+        max-width: 120px;
+    }
+    
+    .presensi-title h1 {
+        font-size: 2.4rem;
+        margin-bottom: 5px;
+    }
+    
+    .welcome-text {
+        font-size: 14px;
+    }
+    
+    .login-form {
+        padding: 20px 15px;
+    }
+}
+
+@media (max-width: 360px) {
+    .logo-section {
+        gap: 10px;
+    }
+    
+    .logo-box {
+        min-width: 85px;
+        min-height: 45px;
+        padding: 5px;
+    }
+    
+    .danantara-logo,
+    .pln-logo {
+        height: 35px;
+        max-width: 100px;
+    }
+    
+    .presensi-title h1 {
+        font-size: 2rem;
+    }
+    
+    .welcome-text {
+        font-size: 13px;
+    }
+    
+    .login-form {
+        padding: 15px 10px;
+    }
+    
+    .captcha-image {
+        height: 30px;
+        width: 110px;
+    }
+    
+    .refresh-btn {
+        height: 30px;
+        width: 30px;
+    }
 }
