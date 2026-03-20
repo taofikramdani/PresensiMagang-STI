@@ -40,7 +40,7 @@ class Peserta extends Model
 
         // Event ketika model di-update
         static::updated(function ($peserta) {
-            // Jika tanggal_selesai berubah, refresh status
+            // Jika tanggal_selesai berubah, refresh status otomatis
             if ($peserta->wasChanged('tanggal_selesai')) {
                 $peserta->refreshStatus();
             }
@@ -48,8 +48,8 @@ class Peserta extends Model
 
         // Event ketika model di-save (create atau update)
         static::saved(function ($peserta) {
-            // Pastikan status selalu up-to-date setelah save
-            if ($peserta->tanggal_selesai) {
+            // Pastikan status selalu up-to-date setelah save, kecuali jika status baru saja diubah manual
+            if ($peserta->tanggal_selesai && !$peserta->wasChanged('status')) {
                 $peserta->refreshStatus();
             }
         });
@@ -121,33 +121,12 @@ class Peserta extends Model
     }
 
     /**
-     * Accessor untuk status yang otomatis berubah berdasarkan periode magang
+     * Accessor untuk status - DINONAKTIFKAN untuk memungkinkan perubahan manual
+     * Status sekarang mengikuti nilai database tanpa logika otomatis
      */
     public function getStatusAttribute($value)
     {
-        // Jika tidak ada tanggal selesai, return status asli
-        if (!$this->tanggal_selesai) {
-            return $value;
-        }
-
-        $now = now();
-        $isExpired = $now->gt($this->tanggal_selesai);
-        
-        // Case 1: Periode sudah lewat tapi status masih aktif -> ubah ke non-aktif
-        if ($isExpired && $value === 'aktif') {
-            $this->updateQuietly(['status' => 'non-aktif']);
-            return 'non-aktif';
-        }
-        
-        // Case 2: Periode diperpanjang (belum lewat) tapi status non-aktif -> ubah ke aktif
-        if (!$isExpired && $value === 'non-aktif') {
-            // Pastikan periode memang diperpanjang dengan mengecek jika tanggal selesai >= hari ini
-            if ($this->tanggal_selesai >= $now->startOfDay()) {
-                $this->updateQuietly(['status' => 'aktif']);
-                return 'aktif';
-            }
-        }
-
+        // Kembalikan nilai status asli dari database tanpa modifikasi
         return $value;
     }
 
@@ -172,18 +151,33 @@ class Peserta extends Model
     }
 
     /**
-     * Method untuk memperbarui status berdasarkan periode secara manual
+     * Method untuk memperbarui status berdasarkan periode secara otomatis
      * Berguna saat update data peserta atau untuk refresh status
      */
     public function refreshStatus()
     {
-        $originalStatus = $this->getRawOriginal('status');
-        $currentStatus = $this->getStatusAttribute($originalStatus);
+        if (!$this->tanggal_selesai) {
+            return;
+        }
+
+        $today = \Carbon\Carbon::now()->startOfDay();
+        $tanggalSelesai = \Carbon\Carbon::parse($this->tanggal_selesai)->startOfDay();
         
-        // Refresh model agar perubahan terlihat
-        $this->refresh();
+        // Tentukan status baru berdasarkan tanggal
+        $newStatus = null;
         
-        return $currentStatus;
+        if ($tanggalSelesai->isBefore($today)) {
+            // Periode sudah berakhir -> non-aktif
+            $newStatus = 'non-aktif';
+        } elseif ($tanggalSelesai->isAfter($today) || $tanggalSelesai->isToday()) {
+            // Periode masih berlaku -> aktif
+            $newStatus = 'aktif';
+        }
+        
+        // Update status jika berbeda dengan status saat ini
+        if ($newStatus && $this->status !== $newStatus) {
+            $this->updateQuietly(['status' => $newStatus]);
+        }
     }
 
     /**

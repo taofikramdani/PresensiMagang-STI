@@ -2,6 +2,11 @@
 
 @section('title', 'Perizinan | Day-In')
 
+@push('head')
+<!-- SweetAlert2 CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+@endpush
+
 @section('content')
     <div class="space-y-6 p-4">
         <!-- Header dengan Tabs -->
@@ -164,40 +169,8 @@
             </div>
         </div>
 
-        <!-- Filter -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <form method="GET" class="flex flex-col md:flex-row gap-4">
-                <div class="flex-1">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                    <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="">Semua Status</option>
-                        <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Menunggu</option>
-                        <option value="disetujui" {{ request('status') == 'disetujui' ? 'selected' : '' }}>Disetujui</option>
-                        <option value="ditolak" {{ request('status') == 'ditolak' ? 'selected' : '' }}>Ditolak</option>
-                    </select>
-                </div>
-                <div class="flex-1">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Jenis</label>
-                    <select name="jenis" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="">Semua Jenis</option>
-                        <option value="izin" {{ request('jenis') == 'izin' ? 'selected' : '' }}>Izin</option>
-                        <option value="sakit" {{ request('jenis') == 'sakit' ? 'selected' : '' }}>Sakit</option>
-                    </select>
-                </div>
-                <div class="flex-1">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Bulan</label>
-                    <input type="month" name="bulan" value="{{ request('bulan') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div class="flex items-end">
-                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 md:px-6 md:py-2 rounded-lg hover:bg-blue-700 text-sm md:text-base">
-                        <i class="fas fa-search mr-1 md:mr-2"></i><span class="hidden sm:inline">Filter</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-
         <!-- Daftar Perizinan -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Riwayat Pengajuan</h2>
 
             @if($perizinans->count() > 0)
@@ -240,10 +213,10 @@
                                         <button onclick="editPerizinan({{ $perizinan->id }}, '{{ $perizinan->jenis }}', '{{ $perizinan->tanggal->format('Y-m-d') }}', '{{ addslashes($perizinan->keterangan) }}')" class="text-blue-600 hover:text-blue-800 text-sm">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <form method="POST" action="{{ route('peserta.izin.destroy', $perizinan) }}" class="inline" onsubmit="return confirm('Yakin ingin menghapus perizinan ini?')">
+                                        <form method="POST" action="{{ route('peserta.izin.destroy', $perizinan) }}" class="inline" id="deleteForm{{ $perizinan->id }}" onsubmit="return false;">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="text-red-600 hover:text-red-800 text-sm">
+                                            <button type="button" onclick="deletePerizinan({{ $perizinan->id }})" class="text-red-600 hover:text-red-800 text-sm">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </form>
@@ -608,6 +581,8 @@
         filter: none !important;
     }
 </style>
+<!-- SweetAlert2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     // Tab switching functionality
     function switchTab(tabName) {
@@ -771,30 +746,95 @@
 
     // Delete pengajuan presensi (AJAX)
     function deletePengajuan(id) {
-        if (confirm('Apakah Anda yakin ingin menghapus pengajuan presensi ini?')) {
-            const deleteUrl = '{{ route("peserta.pengajuan-presensi.destroy", ":id") }}'.replace(':id', id);
-            
-            fetch(deleteUrl, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
+        Swal.fire({
+            title: 'Hapus Pengajuan?',
+            text: 'Data pengajuan yang dihapus tidak dapat dikembalikan!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: '<i class="fas fa-trash mr-2"></i>Ya, Hapus!',
+            cancelButtonText: '<i class="fas fa-times mr-2"></i>Batal',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Show loading
+                Swal.fire({
+                    title: 'Menghapus...',
+                    text: 'Mohon tunggu sebentar',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                const deleteUrl = '{{ route("peserta.pengajuan-presensi.destroy", ":id") }}'.replace(':id', id);
+                
+                fetch(deleteUrl, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        Swal.fire({
+                            title: 'Berhasil!',
+                            text: 'Pengajuan presensi berhasil dihapus',
+                            icon: 'success',
+                            confirmButtonColor: '#2563eb',
+                            timer: 2000,
+                            timerProgressBar: true
+                        }).then(() => {
+                            loadPengajuanPresensiData();
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Gagal!',
+                            text: 'Gagal menghapus pengajuan presensi',
+                            icon: 'error',
+                            confirmButtonColor: '#2563eb'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Terjadi kesalahan saat menghapus pengajuan presensi',
+                        icon: 'error',
+                        confirmButtonColor: '#2563eb'
+                    });
+                });
+            }
+        });
+    }
+
+    // Delete perizinan (Izin/Sakit) dengan SweetAlert
+    function deletePerizinan(id) {
+        Swal.fire({
+            title: 'Hapus Perizinan?',
+            text: 'Data perizinan yang dihapus tidak dapat dikembalikan!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: '<i class="fas fa-trash mr-2"></i>Ya, Hapus!',
+            cancelButtonText: '<i class="fas fa-times mr-2"></i>Batal',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Submit the form
+                const form = document.getElementById('deleteForm' + id);
+                if (form) {
+                    form.onsubmit = null; // Remove the onsubmit handler
+                    form.submit();
                 }
-            })
-            .then(response => {
-                if (response.ok) {
-                    loadPengajuanPresensiData();
-                    alert('Pengajuan presensi berhasil dihapus');
-                } else {
-                    alert('Gagal menghapus pengajuan presensi');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Terjadi kesalahan saat menghapus pengajuan presensi');
-            });
-        }
+            }
+        });
     }
 
     // Handle jenis pengajuan change

@@ -135,23 +135,25 @@
                                            title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <form action="{{ route('admin.pembimbing.toggle-status', $item) }}" method="POST" class="inline">
+                                        <form action="{{ route('admin.pembimbing.toggle-status', $item) }}" method="POST" class="inline toggle-form">
                                             @csrf
                                             @method('PATCH')
-                                            <button type="submit" 
-                                                    class="text-orange-600 hover:text-orange-900 transition-colors duration-200" 
+                                            <button type="button" 
+                                                    class="toggle-btn text-orange-600 hover:text-orange-900 transition-colors duration-200" 
                                                     title="{{ $item->status === 'aktif' ? 'Nonaktifkan' : 'Aktifkan' }}"
-                                                    onclick="return confirm('Yakin ingin mengubah status pembimbing ini?')">
+                                                    data-name="{{ $item->nama_lengkap }}"
+                                                    data-current-status="{{ $item->status }}"
+                                                    data-new-status="{{ $item->status === 'aktif' ? 'non_aktif' : 'aktif' }}">
                                                 <i class="fas {{ $item->status === 'aktif' ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
                                             </button>
                                         </form>
-                                        <form action="{{ route('admin.pembimbing.destroy', $item) }}" method="POST" class="inline">
+                                        <form action="{{ route('admin.pembimbing.destroy', $item) }}" method="POST" class="inline delete-form">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" 
-                                                    class="text-red-600 hover:text-red-900 transition-colors duration-200" 
+                                            <button type="button" 
+                                                    class="delete-btn text-red-600 hover:text-red-900 transition-colors duration-200" 
                                                     title="Hapus"
-                                                    onclick="return confirm('Yakin ingin menghapus data pembimbing ini? Tindakan ini tidak dapat dibatalkan.')">
+                                                    data-name="{{ $item->nama_lengkap }}">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </form>
@@ -208,23 +210,25 @@
                                    class="text-yellow-600 hover:text-yellow-900 p-2" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <form action="{{ route('admin.pembimbing.toggle-status', $item) }}" method="POST" class="inline">
+                                <form action="{{ route('admin.pembimbing.toggle-status', $item) }}" method="POST" class="inline toggle-form">
                                     @csrf
                                     @method('PATCH')
-                                    <button type="submit" 
-                                            class="text-orange-600 hover:text-orange-900 p-2" 
+                                    <button type="button" 
+                                            class="toggle-btn text-orange-600 hover:text-orange-900 p-2" 
                                             title="{{ $item->status === 'aktif' ? 'Nonaktifkan' : 'Aktifkan' }}"
-                                            onclick="return confirm('Yakin ingin mengubah status pembimbing ini?')">
+                                            data-name="{{ $item->nama_lengkap }}"
+                                            data-current-status="{{ $item->status }}"
+                                            data-new-status="{{ $item->status === 'aktif' ? 'non_aktif' : 'aktif' }}">
                                         <i class="fas {{ $item->status === 'aktif' ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
                                     </button>
                                 </form>
-                                <form action="{{ route('admin.pembimbing.destroy', $item) }}" method="POST" class="inline">
+                                <form action="{{ route('admin.pembimbing.destroy', $item) }}" method="POST" class="inline delete-form">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" 
-                                            class="text-red-600 hover:text-red-900 p-2" 
+                                    <button type="button" 
+                                            class="delete-btn text-red-600 hover:text-red-900 p-2" 
                                             title="Hapus"
-                                            onclick="return confirm('Yakin ingin menghapus data pembimbing ini?')">
+                                            data-name="{{ $item->nama_lengkap }}">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </form>
@@ -293,6 +297,87 @@ document.addEventListener('DOMContentLoaded', function() {
 
     searchInput.addEventListener('input', filterData);
     statusFilter.addEventListener('change', filterData);
+
+    // SweetAlert Delete Confirmation
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const form = this.closest('.delete-form');
+            const pembimbingName = this.getAttribute('data-name');
+            
+            Swal.fire({
+                title: 'Apakah Anda yakin?',
+                text: `Data pembimbing "${pembimbingName}" akan dihapus secara permanen!`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading
+                    Swal.fire({
+                        title: 'Menghapus...',
+                        text: 'Sedang memproses penghapusan data',
+                        icon: 'info',
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        willOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    // Submit form
+                    form.submit();
+                }
+            });
+        });
+    });
+
+    // SweetAlert Toggle Status Confirmation
+    document.querySelectorAll('.toggle-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const form = this.closest('.toggle-form');
+            const pembimbingName = this.getAttribute('data-name');
+            const currentStatus = this.getAttribute('data-current-status');
+            const newStatus = this.getAttribute('data-new-status');
+            
+            const statusText = currentStatus === 'aktif' ? 'nonaktifkan' : 'aktifkan';
+            const newStatusText = newStatus === 'aktif' ? 'aktif' : 'non-aktif';
+            
+            Swal.fire({
+                title: 'Konfirmasi Perubahan Status',
+                text: `Apakah Anda yakin ingin ${statusText} pembimbing "${pembimbingName}"?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#f59e0b',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: `Ya, ${statusText.charAt(0).toUpperCase() + statusText.slice(1)}!`,
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading
+                    Swal.fire({
+                        title: 'Memproses...',
+                        text: `Sedang mengubah status menjadi ${newStatusText}`,
+                        icon: 'info',
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        willOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    // Submit form
+                    form.submit();
+                }
+            });
+        });
+    });
 });
 </script>
 @endpush

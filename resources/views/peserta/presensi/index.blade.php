@@ -88,12 +88,10 @@
 
         .status-indicator.in-range {
             background-color: rgba(16, 185, 129, 0.1);
-            border-left: 3px solid #10b981;
         }
 
         .status-indicator.out-of-range {
             background-color: rgba(239, 68, 68, 0.1);
-            border-left: 3px solid #ef4444;
         }
 
         /* Camera Modal Styles */
@@ -214,9 +212,9 @@
         <div class="grid grid-cols-2 gap-3">
             <!-- Tombol Absen Masuk -->
             <button onclick="checkIn()" id="checkInBtn"
-                class="bg-green-600 text-white font-semibold py-4 px-4 rounded-xl shadow-sm disabled:opacity-50 disabled:cursor-not-allowed {{ ($presensiHariIni && $presensiHariIni->jam_masuk) ? 'opacity-50' : '' }}"
+                class="bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold py-3 px-4 rounded-xl shadow-md disabled:opacity-50 disabled:cursor-not-allowed {{ ($presensiHariIni && $presensiHariIni->jam_masuk) ? 'opacity-50' : '' }}"
                 {{ ($presensiHariIni && $presensiHariIni->jam_masuk) ? 'disabled' : '' }}>
-                <div class="flex flex-col items-center space-y-1">
+                <div class="flex items-center justify-center space-x-2">
                     <i class="fas fa-sign-in-alt text-lg"></i>
                     <span class="text-sm">Check In</span>
                 </div>
@@ -224,82 +222,42 @@
 
             <!-- Tombol Absen Keluar -->
             <button onclick="checkOut()" id="checkOutBtn"
-                class="bg-blue-600 text-white font-semibold py-4 px-4 rounded-xl shadow-sm disabled:opacity-50 disabled:cursor-not-allowed {{ (!$presensiHariIni || !$presensiHariIni->jam_masuk) ? 'opacity-50' : '' }}"
+                class="bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold py-3 px-4 rounded-xl shadow-md disabled:opacity-50 disabled:cursor-not-allowed {{ (!$presensiHariIni || !$presensiHariIni->jam_masuk) ? 'opacity-50' : '' }}"
                 {{ (!$presensiHariIni || !$presensiHariIni->jam_masuk) ? 'disabled data-no-checkin' : '' }}>
-                <div class="flex flex-col items-center space-y-1">
+                <div class="flex items-center justify-center space-x-2">
                     <i class="fas fa-sign-out-alt text-lg"></i>
                     <span class="text-sm">
                         @if($presensiHariIni && $presensiHariIni->jam_keluar)
                             Checkout Ulang
                         @else
-                            Checkout
+                            Check Out
                         @endif
                     </span>
                 </div>
             </button>
         </div>
 
-        <!-- Lokasi Compact -->
-        <div class="bg-white rounded-xl  p-4">
-            <h2 class="text-md font-semibold text-gray-900 mb-3 flex items-center">
-                <i class="fas fa-map-marker-alt text-red-500 mr-2"></i>
-                Lokasi Magang Anda
-            </h2>
+        <!-- Map Full Width -->
+        <div class="w-full h-64 bg-gray-100 relative overflow-hidden -mx-4">
+            <div id="map" class="w-full h-full"></div>
 
-            @if($peserta && $peserta->lokasi)
-                <div class="mb-3 p-2 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-                    <p class="text-xs text-blue-700">
-                        <i class="fas fa-info-circle mr-1"></i>
-                        Lokasi presensi telah ditentukan sesuai tempat magang Anda
-                    </p>
-                </div>
-            @else
-                <div class="mb-3 p-2 bg-yellow-50 rounded-lg border-l-4 border-yellow-500">
-                    <p class="text-xs text-yellow-700">
-                        <i class="fas fa-exclamation-triangle mr-1"></i>
-                        Belum ada lokasi magang yang ditentukan. Hubungi admin.
-                    </p>
-                </div>
-            @endif
-
-            <!-- Leaflet Map Container -->
-            <div class="w-full h-48 rounded-lg border border-gray-300 mb-3 bg-gray-100 relative overflow-hidden">
-                <div id="map" class="w-full h-full rounded-lg"></div>
-
-                <!-- Map Controls -->
-                <div class="absolute top-2 right-2 flex space-x-1 z-[1000]">
-                    <button onclick="centerOnOffice()"
-                        class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs">
-                        <i class="fas fa-crosshairs mr-1"></i>Pusat
-                    </button>
-                    <button onclick="getCurrentLocation()"
-                        class="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs">
-                        <i class="fas fa-location-arrow mr-1"></i>GPS
-                    </button>
-                </div>
-
-                <!-- Status -->
-                <div class="absolute bottom-2 right-2 bg-white bg-opacity-95 rounded px-2 py-1 text-xs z-[1000]">
-                    <span id="locationStatus" class="text-gray-600 font-medium">
-                        <i class="fas fa-satellite-dish mr-1"></i>Mencari GPS...
-                    </span>
-                </div>
+            <!-- Map Controls - Top Right -->
+            <div class="absolute top-3 right-3 flex flex-col space-y-1 z-[1000]">
+                <button onclick="centerOnOffice()"
+                    class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg shadow-lg text-xs font-medium">
+                    <i class="fas fa-crosshairs mr-1"></i>Pusat
+                </button>
+                <button onclick="getCurrentLocation()"
+                    class="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg shadow-lg text-xs font-medium">
+                    <i class="fas fa-location-arrow mr-1"></i>GPS
+                </button>
             </div>
 
-            <!-- Info Lokasi Detail -->
-            <div class="bg-gray-50 rounded-lg p-3 mb-3">
-                <div class="flex items-start space-x-2">
-                    <i class="fas fa-map-marker-alt text-red-600 mt-1"></i>
-                    <div>
-                        <p class="text-gray-700 font-medium">{{ $lokasi->nama_lokasi ?? 'Kantor Pusat' }}</p>
-                        @if($peserta && $peserta->lokasi && $peserta->lokasi->alamat)
-                            <p class="text-xs text-gray-500 mt-1">{{ $peserta->lokasi->alamat }}</p>
-                        @endif
-                        <p class="text-xs text-blue-600 mt-1">
-                            <i class="fas fa-bullseye mr-1"></i>Radius: {{ $lokasi->radius ?? 100 }}m
-                        </p>
-                    </div>
-                </div>
+            <!-- Status - Bottom Center -->
+            <div class="absolute bottom-3 left-1/2 transform -translate-x-1/2 bg-white bg-opacity-95 rounded-lg shadow-lg px-3 py-2 text-xs z-[1000]">
+                <span id="locationStatus" class="text-gray-700 font-medium">
+                    <i class="fas fa-satellite-dish mr-1"></i>Mencari GPS...
+                </span>
             </div>
 
             <!-- Loading overlay (will be hidden) -->
@@ -314,9 +272,29 @@
             </div>
         </div>
 
+        <!-- Info Lokasi Magang Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <div class="flex items-start space-x-3">
+                <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-map-marker-alt text-gray-600"></i>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-sm font-semibold text-gray-900 mb-1">Lokasi Magang Anda</h3>
+                    <p class="text-sm font-medium text-gray-800 mb-1">{{ $lokasi->nama_lokasi ?? 'Kantor Pusat' }}</p>
+                    @if($peserta && $peserta->lokasi && $peserta->lokasi->alamat)
+                        <p class="text-xs text-gray-500 leading-relaxed mb-2">{{ $peserta->lokasi->alamat }}</p>
+                    @endif
+                    <div class="inline-flex items-center px-3 py-1.5 bg-gray-100 rounded-full text-xs font-medium text-gray-700">
+                        <i class="fas fa-bullseye mr-1.5 text-gray-500"></i>
+                        Dalam Radius ({{ $lokasi->radius ?? 100 }} m)
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="space-y-3">
             <div
-                class="flex items-center justify-between p-4 bg-gray-50 rounded-lg status-indicator border-l-4 border-blue-500">
+                class="flex items-center justify-between p-4 bg-gray-50 rounded-lg status-indicator">
                 <div class="flex items-center space-x-3">
                     <i class="fas fa-satellite-dish text-gray-500"></i>
                     <span class="text-sm text-gray-600 font-medium">GPS Status:</span>
@@ -328,7 +306,7 @@
             <div class="border-t border-gray-200"></div>
 
             <div
-                class="flex items-center justify-between p-4 bg-gray-50 rounded-lg status-indicator border-l-4 border-green-500">
+                class="flex items-center justify-between p-4 bg-gray-50 rounded-lg status-indicator">
                 <div class="flex items-center space-x-3">
                     <i class="fas fa-ruler text-gray-500"></i>
                     <span class="text-sm text-gray-600 font-medium">Jarak ke Kantor:</span>
@@ -413,6 +391,9 @@
         let isHttps = false;
         let useDefaultLocation = false;
         let defaultLocation = null;
+        let enableGPS = true;
+        let enablePhoto = true;
+        let forceHttpsForFeatures = false;
 
         // Helper function to get Jakarta time
         function getJakartaTime() {
@@ -460,7 +441,6 @@
                 const result = await response.json();
                 if (result.success) {
                     defaultLocation = result.data;
-                    console.log('Default location loaded:', defaultLocation);
                     return defaultLocation;
                 } else {
                     throw new Error(result.message || 'Failed to get default location');
@@ -471,18 +451,102 @@
             }
         }
 
+        // Get presensi settings from server
+        async function getPresensiSettings() {
+            try {
+                const response = await fetch('{{ route("peserta.presensi.settings") }}', {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to get settings');
+                }
+
+                const result = await response.json();
+                if (result.success) {
+                    enableGPS = result.data.enable_gps_tracking;
+                    enablePhoto = result.data.enable_photo_capture;
+                    forceHttpsForFeatures = result.data.force_https_for_features;
+                    
+                    return result.data;
+                } else {
+                    throw new Error(result.message || 'Failed to get settings');
+                }
+            } catch (error) {
+                console.error('Error getting presensi settings:', error);
+                // Default to enabled if fetch fails
+                enableGPS = true;
+                enablePhoto = true;
+                return null;
+            }
+        }
+
         // Initialize location based on SSL status
         async function initializeLocation() {
             await checkSSLStatus();
             await getDefaultLocation();
+            await getPresensiSettings();
 
+            // Check if GPS is enabled by admin
+            if (!enableGPS) {
+                console.log('GPS tracking disabled by admin - using default location');
+                useDefaultLocation = true;
+                
+                if (defaultLocation) {
+                    userLocation = {
+                        lat: parseFloat(defaultLocation.latitude),
+                        lng: parseFloat(defaultLocation.longitude),
+                        accuracy: 0
+                    };
+
+                    document.getElementById('locationStatus').innerHTML =
+                        '<i class="fas fa-map-marker-alt mr-1 text-blue-600"></i>Lokasi Default (GPS Dinonaktifkan)';
+
+                    updateLocationDisplay();
+                    updateUserMarker();
+                    calculateDistance();
+                } else {
+                    document.getElementById('locationStatus').innerHTML =
+                        '<i class="fas fa-exclamation-triangle mr-1 text-red-600"></i>Lokasi tidak tersedia';
+                }
+                return;
+            }
+
+            // Check HTTPS requirement
+            if (forceHttpsForFeatures && !isHttps) {
+                console.log('HTTPS required but not available - using default location');
+                useDefaultLocation = true;
+                
+                if (defaultLocation) {
+                    userLocation = {
+                        lat: parseFloat(defaultLocation.latitude),
+                        lng: parseFloat(defaultLocation.longitude),
+                        accuracy: 0
+                    };
+
+                    document.getElementById('locationStatus').innerHTML =
+                        '<i class="fas fa-map-marker-alt mr-1 text-orange-600"></i>Lokasi Default (HTTP Mode)';
+
+                    updateLocationDisplay();
+                    updateUserMarker();
+                    calculateDistance();
+                } else {
+                    document.getElementById('locationStatus').innerHTML =
+                        '<i class="fas fa-exclamation-triangle mr-1 text-red-600"></i>Lokasi tidak tersedia';
+                }
+                return;
+            }
+
+            // GPS enabled, proceed with normal logic
             if (isHttps) {
-                console.log('HTTPS detected - Using GPS location');
                 document.getElementById('locationStatus').innerHTML =
                     '<i class="fas fa-satellite-dish mr-1"></i>Menggunakan GPS...';
                 getCurrentLocation();
             } else {
-                console.log('HTTP detected - Using default location');
                 useDefaultLocation = true;
 
                 if (defaultLocation) {
@@ -820,10 +884,21 @@
 
             currentAction = 'checkin';
 
-            // If HTTPS is available, use camera
-            if (isHttps) {
+            // Check if photo is enabled
+            // Photo can be used if: enablePhoto is true AND (not forcing HTTPS OR is HTTPS)
+            const canUsePhoto = enablePhoto && (!forceHttpsForFeatures || isHttps);
+            
+            console.log('Check In - Photo settings:', {
+                enablePhoto,
+                forceHttpsForFeatures,
+                isHttps,
+                canUsePhoto
+            });
+            
+            if (canUsePhoto) {
                 openCameraModal();
             } else {
+                console.log('Skipping camera - submitting without photo');
                 // Skip camera and directly submit without photo
                 submitPresensiWithoutPhoto();
             }
@@ -895,10 +970,21 @@
                         // Sudah ada kegiatan, lanjut checkout
                         currentAction = 'checkout';
 
-                        // If HTTPS is available, use camera
-                        if (isHttps) {
+                        // Check if photo is enabled
+                        // Photo can be used if: enablePhoto is true AND (not forcing HTTPS OR is HTTPS)
+                        const canUsePhoto = enablePhoto && (!forceHttpsForFeatures || isHttps);
+                        
+                        console.log('Check Out - Photo settings:', {
+                            enablePhoto,
+                            forceHttpsForFeatures,
+                            isHttps,
+                            canUsePhoto
+                        });
+                        
+                        if (canUsePhoto) {
                             openCameraModal();
                         } else {
+                            console.log('Skipping camera - submitting without photo');
                             // Skip camera and directly submit without photo
                             submitPresensiWithoutPhoto();
                         }

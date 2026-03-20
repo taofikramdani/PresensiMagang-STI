@@ -9,6 +9,8 @@ use App\Http\Controllers\JamKerjaController;
 use App\Http\Controllers\LokasiController;
 use App\Http\Controllers\PerizinanController;
 use App\Http\Controllers\CaptchaController;
+use App\Http\Controllers\HariLiburController;
+use App\Http\Controllers\SettingController;
 
 Route::get('/', [AuthController::class, 'showLoginForm']);
 
@@ -70,6 +72,9 @@ Route::middleware(['auth', 'role:admin,pembimbing'])->prefix('admin')->name('adm
     Route::get('/peserta/export/excel', [PesertaController::class, 'exportExcel'])->name('peserta.export-excel');
     Route::get('/peserta/export/pdf', [PesertaController::class, 'exportPdf'])->name('peserta.export-pdf');
 
+    // Additional route untuk toggle status peserta
+    Route::patch('/peserta/{peserta}/toggle-status', [PesertaController::class, 'toggleStatus'])->name('peserta.toggle-status');
+
     // Resource route untuk pembimbing
     Route::resource('pembimbing', PembimbingController::class);
 
@@ -84,6 +89,28 @@ Route::middleware(['auth', 'role:admin,pembimbing'])->prefix('admin')->name('adm
 
     // Resource route untuk lokasi
     Route::resource('lokasi', LokasiController::class);
+    
+    // Settings routes
+    Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
+    Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
+    
+    // Import routes untuk hari libur (harus sebelum resource route)
+    Route::post('/hari-libur/import-file', [HariLiburController::class, 'importFromFile'])->name('hari-libur.import-file');
+    Route::post('/hari-libur/sync-api', [HariLiburController::class, 'syncFromAPI'])->name('hari-libur.sync-api');
+    Route::get('/hari-libur/template/download', function() {
+        $filePath = public_path('template_hari_libur.json');
+        if (file_exists($filePath)) {
+            return response()->download($filePath, 'template_hari_libur_' . date('Y-m-d') . '.json');
+        }
+        abort(404, 'Template file not found');
+    })->name('hari-libur.template.download');
+    
+    // Resource route untuk hari libur
+    Route::resource('hari-libur', HariLiburController::class);
+    
+    // Additional routes untuk hari libur
+    Route::get('/hari-libur-events', [HariLiburController::class, 'getEvents'])->name('hari-libur.events');
+    Route::patch('/hari-libur/{hariLibur}/toggle-status', [HariLiburController::class, 'toggleStatus'])->name('hari-libur.toggle-status');
     
     // Monitoring Kegiatan routes
     Route::prefix('monitoring-kegiatan')->name('monitoring-kegiatan.')->group(function () {
@@ -175,6 +202,8 @@ Route::middleware(['auth', 'role:peserta'])->prefix('peserta')->name('peserta.')
         Route::post('/checkout', [App\Http\Controllers\Peserta\PresensiController::class, 'checkout'])->name('checkout');
         Route::get('/default-location', [App\Http\Controllers\Peserta\PresensiController::class, 'getDefaultLocation'])->name('default-location');
         Route::get('/ssl-status', [App\Http\Controllers\Peserta\PresensiController::class, 'checkSSLStatus'])->name('ssl-status');
+        Route::get('/holiday-info', [App\Http\Controllers\Peserta\PresensiController::class, 'getHolidayInfo'])->name('holiday-info');
+        Route::get('/settings', [App\Http\Controllers\Peserta\PresensiController::class, 'getSettings'])->name('settings');
     });
     
     // Check kegiatan harian route

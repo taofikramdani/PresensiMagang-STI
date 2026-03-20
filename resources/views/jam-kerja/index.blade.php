@@ -3,6 +3,21 @@
 @section('title', 'Jam Kerja - Day-In')
 
 @section('content')
+<!-- Success Message -->
+@if(session('success'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            Swal.fire({
+                title: 'Berhasil!',
+                text: '{{ session('success') }}',
+                icon: 'success',
+                confirmButtonColor: '#10b981',
+                confirmButtonText: 'OK'
+            });
+        });
+    </script>
+@endif
+
 <div class="bg-white rounded-lg shadow-sm overflow-hidden">
     <!-- Header -->
     <div class="text-black px-6 py-4 border-b border-gray-200">
@@ -88,13 +103,13 @@
                                            class="text-yellow-600 hover:text-yellow-900" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <form action="{{ route('admin.jam-kerja.destroy', $item) }}" method="POST" class="inline">
+                                        <form action="{{ route('admin.jam-kerja.destroy', $item) }}" method="POST" class="inline delete-form">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" 
-                                                    class="text-red-600 hover:text-red-900" 
+                                            <button type="button" 
+                                                    class="delete-btn text-red-600 hover:text-red-900" 
                                                     title="Hapus"
-                                                    onclick="return confirm('Apakah Anda yakin ingin menghapus jam kerja ini?')">
+                                                    data-name="{{ $item->nama }}">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </form>
@@ -143,12 +158,12 @@
                                 <i class="fas fa-edit mr-2"></i>
                                 Edit
                             </a>
-                            <form action="{{ route('admin.jam-kerja.destroy', $item) }}" method="POST" class="flex-1">
+                            <form action="{{ route('admin.jam-kerja.destroy', $item) }}" method="POST" class="flex-1 delete-form">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" 
-                                        class="w-full inline-flex justify-center items-center px-3 py-2 border border-red-300 shadow-sm text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50"
-                                        onclick="return confirm('Apakah Anda yakin ingin menghapus jam kerja ini?')">
+                                <button type="button" 
+                                        class="delete-btn w-full inline-flex justify-center items-center px-3 py-2 border border-red-300 shadow-sm text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50"
+                                        data-name="{{ $item->nama }}">
                                     <i class="fas fa-trash mr-2"></i>
                                     Hapus
                                 </button>
@@ -202,6 +217,44 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('[onclick*="event.stopPropagation"]').forEach(element => {
         element.addEventListener('click', function(e) {
             e.stopPropagation();
+        });
+    });
+
+    // SweetAlert Delete Confirmation
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const form = this.closest('.delete-form');
+            const jamKerjaName = this.getAttribute('data-name');
+            
+            Swal.fire({
+                title: 'Apakah Anda yakin?',
+                text: `Jam kerja "${jamKerjaName}" akan dihapus secara permanen!`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading
+                    Swal.fire({
+                        title: 'Menghapus...',
+                        text: 'Sedang memproses penghapusan data',
+                        icon: 'info',
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        willOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    // Submit form
+                    form.submit();
+                }
+            });
         });
     });
 });

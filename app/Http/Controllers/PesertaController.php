@@ -83,7 +83,7 @@ class PesertaController extends Controller
 {
     $request->validate([
         'nama_lengkap'   => 'required|string|max:255',
-        'username'       => 'required|string|max:255|unique:users,name', 
+        'username'       => 'required|string|max:255|unique:users,name|regex:/^[^\s]+$/', 
         'email'          => 'required|string|email|max:255|unique:users',
         'password'       => [
             'required',
@@ -101,7 +101,11 @@ class PesertaController extends Controller
         'pembimbing_id'  => 'required|exists:users,id',
         'lokasi_id'      => 'required|exists:lokasis,id'
     ], [
-        'password.regex' => 'Password harus mengandung minimal 1 huruf kecil, 1 huruf besar, 1 angka, dan 1 simbol (@$!%*?&)'
+        'password.regex' => 'Password harus mengandung minimal 1 huruf kecil, 1 huruf besar, 1 angka, dan 1 simbol (@$!%*?&)',
+        'username.regex' => 'Username tidak boleh mengandung spasi.',
+        'username.unique' => 'Username sudah digunakan.',
+        'username.required' => 'Username wajib diisi.',
+        'username.max' => 'Username maksimal 255 karakter.'
     ]);
 
     // Buat user dulu
@@ -164,7 +168,7 @@ class PesertaController extends Controller
     {
         $request->validate([
             'nama_lengkap' => 'required|string|max:255|unique:peserta,nama_lengkap,' . $peserta->id,
-            'username' => 'required|string|max:255|unique:users,name,' . $peserta->user_id,
+            'username' => 'required|string|max:255|unique:users,name,' . $peserta->user_id . '|regex:/^[^\s]+$/',
             'email' => 'required|string|email|max:255|unique:users,email,' . $peserta->user_id,
             'nim' => 'required|string|max:20|unique:peserta,nim,' . $peserta->id,
             'jurusan' => 'required|string|max:100',
@@ -176,6 +180,11 @@ class PesertaController extends Controller
             'pembimbing_id' => 'required|exists:users,id',
             'lokasi_id' => 'required|exists:lokasis,id',
             'status' => 'required|in:aktif,non-aktif'
+        ], [
+            'username.regex' => 'Username tidak boleh mengandung spasi.',
+            'username.unique' => 'Username sudah digunakan.',
+            'username.required' => 'Username wajib diisi.',
+            'username.max' => 'Username maksimal 255 karakter.'
         ]);
 
         // Update user
@@ -201,21 +210,8 @@ class PesertaController extends Controller
             ]);
         }
 
-        // Cek apakah tanggal selesai diperpanjang dari yang sebelumnya
-        $tanggalSelesaiBaru = \Carbon\Carbon::parse($request->tanggal_selesai);
-        $tanggalSelesaiLama = $peserta->tanggal_selesai ? \Carbon\Carbon::parse($peserta->tanggal_selesai) : null;
+        // Gunakan status yang diminta user tanpa logika otomatis yang membingungkan
         $statusBaru = $request->status;
-        
-        // Jika tanggal selesai diperpanjang dan sekarang masih dalam periode aktif
-        if ($tanggalSelesaiLama && $tanggalSelesaiBaru->isAfter($tanggalSelesaiLama)) {
-            // Jika periode baru masih berlaku (tanggal selesai >= hari ini)
-            if ($tanggalSelesaiBaru->isAfter(now()) || $tanggalSelesaiBaru->isToday()) {
-                // Otomatis ubah status jadi aktif jika sebelumnya non-aktif karena habis masa
-                if ($peserta->status === 'non-aktif') {
-                    $statusBaru = 'aktif';
-                }
-            }
-        }
         
         // Update peserta
         $peserta->update([
@@ -229,15 +225,11 @@ class PesertaController extends Controller
             'tanggal_selesai' => $request->tanggal_selesai,
             'pembimbing_id' => $request->pembimbing_id,
             'lokasi_id' => $request->lokasi_id,
-            'status' => $statusBaru // Gunakan status yang sudah diperiksa
+            'status' => $statusBaru
         ]);
 
-        // Pesan success dengan informasi tambahan jika status berubah otomatis
+        // Pesan success
         $successMessage = 'Data peserta berhasil diperbarui';
-        
-        if ($statusBaru === 'aktif' && $request->status === 'non-aktif' && $peserta->status === 'non-aktif') {
-            $successMessage .= '. Status otomatis diubah menjadi AKTIF karena periode magang diperpanjang!';
-        }
         
         return redirect()->route('admin.peserta.index')
                         ->with('success', $successMessage);
@@ -343,5 +335,17 @@ class PesertaController extends Controller
         $pdf->setPaper('A4', 'landscape');
         
         return $pdf->download('Data_Peserta_Magang_' . date('Y-m-d_H-i-s') . '.pdf');
+    }
+
+    /**
+     * Toggle peserta status
+     */
+    public function toggleStatus(Peserta $peserta)
+    {
+        $newStatus = $peserta->status === 'aktif' ? 'non-aktif' : 'aktif';
+        $peserta->update(['status' => $newStatus]);
+
+        return redirect()->route('admin.peserta.index')
+            ->with('success', "Status peserta berhasil diubah menjadi {$newStatus}.");
     }
 }

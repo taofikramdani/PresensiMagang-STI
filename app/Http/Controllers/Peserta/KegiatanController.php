@@ -316,6 +316,52 @@ class KegiatanController extends Controller
         }
     }
 
+    // Get events for FullCalendar
+    public function events(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $peserta = Peserta::where('user_id', $user->id)->first();
+            
+            if (!$peserta) {
+                return response()->json(['error' => 'Data peserta tidak ditemukan.'], 404);
+            }
+
+            $query = Kegiatan::byPeserta($peserta->id);
+
+            // Filter by date range if provided (FullCalendar sends start and end dates)
+            if ($request->filled('start') && $request->filled('end')) {
+                $query->whereBetween('tanggal', [$request->start, $request->end]);
+            }
+
+            $kegiatans = $query->orderBy('tanggal', 'asc')->orderBy('jam_mulai', 'asc')->get();
+
+            // Format events for FullCalendar
+            $events = $kegiatans->map(function ($kegiatan) {
+                return [
+                    'id' => $kegiatan->id,
+                    'title' => $kegiatan->judul,
+                    'start' => $kegiatan->tanggal . 'T' . $kegiatan->jam_mulai,
+                    'end' => $kegiatan->jam_selesai ? $kegiatan->tanggal . 'T' . $kegiatan->jam_selesai : null,
+                    'category' => $kegiatan->kategori_aktivitas,
+                    'description' => $kegiatan->deskripsi,
+                    'bukti' => $kegiatan->bukti,
+                    'extendedProps' => [
+                        'category' => $kegiatan->kategori_aktivitas,
+                        'description' => $kegiatan->deskripsi,
+                        'bukti' => $kegiatan->bukti
+                    ]
+                ];
+            });
+
+            return response()->json($events);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching calendar events: ' . $e->getMessage());
+            return response()->json(['error' => 'Terjadi kesalahan saat memuat events.'], 500);
+        }
+    }
+
     public function search(Request $request)
     {
         try {

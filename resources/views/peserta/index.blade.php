@@ -182,11 +182,11 @@
                                                         class="text-yellow-600 hover:text-yellow-900 p-1.5 rounded hover:bg-yellow-50" title="Edit">
                                                         <i class="fas fa-edit text-xs"></i>
                                                     </a>
-                                                    <form action="{{ route('admin.peserta.destroy', $item->id) }}" method="POST" class="inline"
-                                                        onsubmit="return confirm('Apakah Anda yakin ingin menghapus data peserta ini?')">
+                                                    <form action="{{ route('admin.peserta.destroy', $item->id) }}" method="POST" class="inline delete-form">
                                                         @csrf
                                                         @method('DELETE')
-                                                        <button type="submit" class="text-red-600 hover:text-red-900 p-1.5 rounded hover:bg-red-50" title="Hapus">
+                                                        <button type="button" class="delete-btn text-red-600 hover:text-red-900 p-1.5 rounded hover:bg-red-50" 
+                                                                title="Hapus" data-name="{{ $item->nama_lengkap }}">
                                                             <i class="fas fa-trash text-xs"></i>
                                                         </button>
                                                     </form>
@@ -251,11 +251,10 @@
                                     <i class="fas fa-edit mr-1"></i>
                                     Edit
                                 </a>
-                                <form action="{{ route('admin.peserta.destroy', $item->id) }}" method="POST" class="inline"
-                                    onsubmit="return confirm('Apakah Anda yakin ingin menghapus data peserta ini?')">
+                                <form action="{{ route('admin.peserta.destroy', $item->id) }}" method="POST" class="inline delete-form">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="text-red-600 hover:text-red-900">
+                                    <button type="button" class="delete-btn text-red-600 hover:text-red-900" data-name="{{ $item->nama_lengkap }}">
                                         <i class="fas fa-trash mr-1"></i>
                                         Hapus
                                     </button>
@@ -409,6 +408,44 @@ document.addEventListener('DOMContentLoaded', function() {
     if (lokasiFilter) {
         lokasiFilter.addEventListener('change', filterData);
     }
+
+    // SweetAlert Delete Confirmation
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const form = this.closest('.delete-form');
+            const pesertaName = this.getAttribute('data-name');
+            
+            Swal.fire({
+                title: 'Apakah Anda yakin?',
+                text: `Data peserta "${pesertaName}" akan dihapus secara permanen!`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading
+                    Swal.fire({
+                        title: 'Menghapus...',
+                        text: 'Sedang memproses penghapusan data',
+                        icon: 'info',
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        willOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    // Submit form
+                    form.submit();
+                }
+            });
+        });
+    });
 });
 </script>
 @endpush

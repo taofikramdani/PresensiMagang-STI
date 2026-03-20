@@ -1,0 +1,42 @@
+[
+    {
+        "nama_libur": "Tahun Baru",
+        "tanggal": "2025-01-01",
+        "deskripsi": "Tahun Baru Masehi",
+        "jenis": "nasional",
+        "warna": "#e74c3c",
+        "is_active": true
+    },
+    {
+        "nama_libur": "Hari Kemerdekaan RI",
+        "tanggal": "2025-08-17",
+        "deskripsi": "Hari Kemerdekaan Republik Indonesia ke-80",
+        "jenis": "nasional",
+        "warna": "#e74c3c",
+        "is_active": true
+    },
+    {
+        "nama_libur": "Hari Raya Idul Fitri",
+        "tanggal": "2025-03-31",
+        "deskripsi": "Hari Raya Idul Fitri 1446 H",
+        "jenis": "keagamaan",
+        "warna": "#27ae60",
+        "is_active": true
+    },
+    {
+        "nama_libur": "Hari Natal",
+        "tanggal": "2025-12-25",
+        "deskripsi": "Hari Natal",
+        "jenis": "keagamaan",
+        "warna": "#e67e22",
+        "is_active": true
+    },
+    {
+        "nama_libur": "Cuti Bersama (Custom)",
+        "tanggal": "2025-12-24",
+        "deskripsi": "Cuti bersama menjelang Natal",
+        "jenis": "custom",
+        "warna": "#3498db",
+        "is_active": true
+    }
+]

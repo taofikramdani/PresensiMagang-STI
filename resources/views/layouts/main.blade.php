@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Dashboard | Day-In')</title>
     
     <!-- Vite Assets (Built CSS & JS) -->
@@ -14,6 +15,12 @@
     
     <!-- Backup Font Awesome CDN -->
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.0.0/css/all.css">
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- FullCalendar CSS -->
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
     
     <!-- Google Fonts - Public Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -186,6 +193,45 @@
                 </div>
             </div>
 
+            <!-- Right side: Notification and User Menu -->
+            <div class="flex items-center space-x-4">
+                <!-- Notification Button -->
+                <div class="notification-container relative">
+                    <button id="notificationButton" class="relative p-2 text-gray-500 hover:text-primary focus:outline-none transition-colors duration-150">
+                        <i class="fas fa-bell text-xl"></i>
+                        <!-- Notification Badge -->
+                        <span id="notificationBadge" class="notification-badge absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center hidden">
+                            0
+                        </span>
+                    </button>
+
+                    <!-- Notification Dropdown -->
+                    <div id="notificationDropdown" class="notification-dropdown absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 hidden z-50">
+                        <!-- Header -->
+                        <div class="px-4 py-3 border-b border-gray-200">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-semibold text-gray-900">Notifikasi</h3>
+                                <button id="markAllRead" class="text-sm text-blue-600 hover:text-blue-800 transition-colors duration-150">
+                                    Tandai semua dibaca
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Notification List -->
+                        <div id="notificationList" class="notification-scroll max-h-96 overflow-y-auto">
+                            <!-- Notifications will be loaded here -->
+                            <div class="p-4 text-center text-gray-500">Memuat notifikasi...</div>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="px-4 py-3 border-t border-gray-200 text-center">
+                            <a href="{{ route('notifications.index') }}" class="text-sm text-blue-600 hover:text-blue-800 transition-colors duration-150">
+                                Lihat semua notifikasi
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- User Menu -->
                 <div class="relative">
                     <button id="userMenuButton" class="flex items-center space-x-2 focus:outline-none">
@@ -298,6 +344,16 @@
                             <i class="fa-solid fa-clock mr-2"></i>
                             Jam Kerja
                         </a>
+                        <a href="{{ route('admin.hari-libur.index') }}"
+                            class="@if(request()->routeIs('admin.hari-libur.*')) bg-blue-50 text-primary @else text-gray-700 hover:bg-gray-100 hover:text-primary @endif block px-4 py-2 text-sm transition-colors duration-150">
+                            <i class="fa-solid fa-calendar-xmark mr-2"></i>
+                            Hari Libur
+                        </a>
+                        <a href="{{ route('admin.settings.index') }}"
+                            class="@if(request()->routeIs('admin.settings.*')) bg-blue-50 text-primary @else text-gray-700 hover:bg-gray-100 hover:text-primary @endif block px-4 py-2 text-sm transition-colors duration-150">
+                            <i class="fa-solid fa-cog mr-2"></i>
+                            Pengaturan Sistem
+                        </a>
                     </div>
                 </div>
             </div>
@@ -401,6 +457,16 @@
                                 <i class="fa-solid fa-clock mr-3"></i>
                                 Jam Kerja
                             </a>
+                            <a href="{{ route('admin.hari-libur.index') }}"
+                                class="flex items-center px-3 py-2 mt-1 text-sm @if(request()->routeIs('admin.hari-libur.*')) text-primary bg-blue-50 @else text-gray-700 hover:bg-gray-100 hover:text-primary @endif rounded-md transition-colors duration-150">
+                                <i class="fa-solid fa-calendar-xmark mr-3"></i>
+                                Hari Libur
+                            </a>
+                            <a href="{{ route('admin.settings.index') }}"
+                                class="flex items-center px-3 py-2 mt-1 text-sm @if(request()->routeIs('admin.settings.*')) text-primary bg-blue-50 @else text-gray-700 hover:bg-gray-100 hover:text-primary @endif rounded-md transition-colors duration-150">
+                                <i class="fa-solid fa-cog mr-3"></i>
+                                Pengaturan Sistem
+                            </a>
                         </div>
                     </nav>
                 </div>
@@ -471,6 +537,130 @@
             });
         };
 
+        // Notification functions
+        const updateNotificationCount = (count) => {
+            const notificationBadge = document.getElementById('notificationBadge');
+            if (notificationBadge) {
+                if (count > 0) {
+                    notificationBadge.textContent = count > 99 ? '99+' : count;
+                    notificationBadge.classList.remove('hidden');
+                } else {
+                    notificationBadge.classList.add('hidden');
+                }
+            }
+        };
+
+        const loadNotifications = async () => {
+            try {
+                const response = await fetch('{{ route("notifications.recent") }}');
+                const data = await response.json();
+
+                if (data.success) {
+                    displayNotifications(data.notifications);
+                    
+                    // Update unread count
+                    const unreadCount = data.notifications.filter(n => !n.is_read).length;
+                    updateNotificationCount(unreadCount);
+                }
+            } catch (error) {
+                console.error('Error loading notifications:', error);
+            }
+        };
+
+        const displayNotifications = (notifications) => {
+            const notificationList = document.getElementById('notificationList');
+            if (!notificationList) return;
+
+            if (notifications.length === 0) {
+                notificationList.innerHTML = '<div class="p-4 text-center text-gray-500">Tidak ada notifikasi</div>';
+                return;
+            }
+
+            const notificationsHtml = notifications.map(notification => {
+                const isUnread = !notification.is_read;
+                const typeColor = getNotificationTypeColor(notification.type);
+                
+                return `
+                    <div class="notification-item p-3 hover:bg-gray-50 cursor-pointer border-b ${isUnread ? 'bg-blue-50 border-l-4 border-l-blue-500' : 'bg-white'}" 
+                         data-id="${notification.id}" 
+                         onclick="markNotificationAsRead(${notification.id})">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-2 h-2 rounded-full mt-2 ${isUnread ? typeColor : 'bg-gray-300'}"></div>
+                            <div class="flex-1 min-w-0">
+                                <h4 class="text-sm font-medium text-gray-900 truncate">${notification.title}</h4>
+                                <p class="text-sm text-gray-500 mt-1">${notification.message}</p>
+                                <span class="text-xs text-gray-400">${notification.time_ago}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            notificationList.innerHTML = notificationsHtml;
+        };
+
+        const getNotificationTypeColor = (type) => {
+            switch (type) {
+                case 'pengajuan_izin':
+                    return 'bg-yellow-500';
+                case 'approval_izin':
+                    return 'bg-green-500';
+                case 'reminder_presensi':
+                    return 'bg-blue-500';
+                case 'presensi_alert':
+                    return 'bg-red-500';
+                default:
+                    return 'bg-blue-500';
+            }
+        };
+
+        const markNotificationAsRead = async (notificationId) => {
+            try {
+                const response = await fetch(`{{ route("notifications.mark-read", ":id") }}`.replace(':id', notificationId), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Update the notification item styling
+                    const notificationItem = document.querySelector(`[data-id="${notificationId}"]`);
+                    if (notificationItem) {
+                        notificationItem.classList.remove('bg-blue-50', 'border-l-4', 'border-l-blue-500');
+                        notificationItem.classList.add('bg-white');
+                        
+                        const indicator = notificationItem.querySelector('.w-2.h-2');
+                        if (indicator) {
+                            indicator.classList.remove('bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-red-500');
+                            indicator.classList.add('bg-gray-300');
+                        }
+                    }
+
+                    // Update badge count
+                    loadUnreadCount();
+                }
+            } catch (error) {
+                console.error('Error marking notification as read:', error);
+            }
+        };
+
+        const loadUnreadCount = async () => {
+            try {
+                const response = await fetch('{{ route("notifications.unread-count") }}');
+                const data = await response.json();
+
+                if (data.success) {
+                    updateNotificationCount(data.count);
+                }
+            } catch (error) {
+                console.error('Error loading unread count:', error);
+            }
+        };
+
         // Notification dropdown functionality
         const setupNotificationDropdown = () => {
             const notificationButton = document.getElementById('notificationButton');
@@ -503,6 +693,8 @@
                 if (isHidden) {
                     notificationDropdown.classList.remove('hidden');
                     adjustDropdownPosition();
+                    // Load notifications when opening dropdown
+                    loadNotifications();
                 } else {
                     notificationDropdown.classList.add('hidden');
                 }
@@ -543,21 +735,65 @@
                 notificationDropdown.classList.add('hidden');
             };
 
-            const markAllAsRead = () => {
-                // Hide badge when all notifications are read
-                if (notificationBadge) {
-                    notificationBadge.classList.add('hidden');
-                }
-                
-                // Remove unread indicators
-                const unreadIndicators = notificationDropdown.querySelectorAll('.w-2.h-2');
-                unreadIndicators.forEach(indicator => {
-                    indicator.classList.remove('bg-blue-500', 'bg-green-500', 'bg-yellow-500');
-                    indicator.classList.add('bg-gray-300');
-                });
+            const markAllAsRead = async () => {
+                try {
+                    // Show loading state
+                    if (markAllReadBtn) {
+                        markAllReadBtn.disabled = true;
+                        markAllReadBtn.textContent = 'Memproses...';
+                    }
 
-                // Here you can add API call to mark notifications as read
-                console.log('Marking all notifications as read...');
+                    // Make API call to mark all notifications as read
+                    const response = await fetch('{{ route("notifications.mark-all-read") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        // Hide badge when all notifications are read
+                        if (notificationBadge) {
+                            notificationBadge.classList.add('hidden');
+                        }
+                        
+                        // Remove unread indicators and update styling
+                        const notificationItems = notificationDropdown.querySelectorAll('.notification-item');
+                        notificationItems.forEach(item => {
+                            // Remove unread styling
+                            item.classList.remove('bg-blue-50', 'border-l-4', 'border-l-blue-500');
+                            item.classList.add('bg-white');
+                            
+                            // Update indicator
+                            const indicator = item.querySelector('.w-2.h-2');
+                            if (indicator) {
+                                indicator.classList.remove('bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-red-500');
+                                indicator.classList.add('bg-gray-300');
+                            }
+                        });
+
+                        // Update unread count to 0
+                        updateNotificationCount(0);
+
+                        // Show success message
+                        console.log('All notifications marked as read');
+                    } else {
+                        console.error('Failed to mark notifications as read:', data.message);
+                        alert('Gagal menandai semua notifikasi sebagai dibaca');
+                    }
+                } catch (error) {
+                    console.error('Error marking notifications as read:', error);
+                    alert('Terjadi kesalahan saat menandai notifikasi');
+                } finally {
+                    // Reset button state
+                    if (markAllReadBtn) {
+                        markAllReadBtn.disabled = false;
+                        markAllReadBtn.textContent = 'Tandai semua dibaca';
+                    }
+                }
             };
 
             notificationButton.addEventListener('click', toggleNotificationDropdown);
@@ -674,6 +910,12 @@
             // Setup notification dropdown
             setupNotificationDropdown();
 
+            // Load initial notification count
+            loadUnreadCount();
+
+            // Refresh notifications every 30 seconds
+            setInterval(loadUnreadCount, 30000);
+
             // Handle Laravel flash messages with SweetAlert
             @if(session('success'))
                 Swal.fire({
@@ -716,6 +958,80 @@
             console.error('SweetAlert2 failed to load');
         }
     </script>
+
+    <!-- Global SweetAlert Script -->
+    <script>
+        // Global function for delete confirmation
+        function confirmDelete(form, itemName, itemType = 'data') {
+            Swal.fire({
+                title: 'Apakah Anda yakin?',
+                text: `${itemType} "${itemName}" akan dihapus secara permanen!`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading
+                    Swal.fire({
+                        title: 'Menghapus...',
+                        text: 'Sedang memproses penghapusan data',
+                        icon: 'info',
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        willOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    // Submit form
+                    form.submit();
+                }
+            });
+        }
+
+        // Global function for success message
+        function showSuccess(message) {
+            Swal.fire({
+                title: 'Berhasil!',
+                text: message,
+                icon: 'success',
+                confirmButtonColor: '#10b981',
+                confirmButtonText: 'OK'
+            });
+        }
+
+        // Global function for error message
+        function showError(message) {
+            Swal.fire({
+                title: 'Error!',
+                text: message,
+                icon: 'error',
+                confirmButtonColor: '#ef4444',
+                confirmButtonText: 'OK'
+            });
+        }
+
+        // Auto show success message if session exists
+        @if(session('success'))
+            document.addEventListener('DOMContentLoaded', function() {
+                showSuccess('{{ session('success') }}');
+            });
+        @endif
+
+        // Auto show error message if session exists
+        @if(session('error'))
+            document.addEventListener('DOMContentLoaded', function() {
+                showError('{{ session('error') }}');
+            });
+        @endif
+    </script>
+
+    <!-- FullCalendar JS -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
 
     <!-- Additional Scripts -->
     @stack('scripts')

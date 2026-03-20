@@ -4,6 +4,21 @@
 
 @section('content')
     <div class="space-y-6">
+        <!-- Success Message -->
+        @if(session('success'))
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    Swal.fire({
+                        title: 'Berhasil!',
+                        text: '{{ session('success') }}',
+                        icon: 'success',
+                        confirmButtonColor: '#10b981',
+                        confirmButtonText: 'OK'
+                    });
+                });
+            </script>
+        @endif
+
         <!-- Header Section -->
         <div class="bg-white rounded-lg shadow-sm p-6">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
@@ -137,12 +152,12 @@
                                                     <i class="fas fa-edit mr-2"></i>
                                                     Edit Lokasi
                                                 </a>
-                                                <form action="{{ route('admin.lokasi.destroy', $item->id) }}" method="POST" class="flex-1"
-                                                      onsubmit="return confirm('Apakah Anda yakin ingin menghapus lokasi ini?')">
+                                                <form action="{{ route('admin.lokasi.destroy', $item->id) }}" method="POST" class="flex-1 delete-form">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" 
-                                                            class="w-full bg-red-500 hover:bg-red-600 text-white text-sm font-medium py-2.5 px-4 rounded-md transition duration-200">
+                                                    <button type="button" 
+                                                            class="delete-btn w-full bg-red-500 hover:bg-red-600 text-white text-sm font-medium py-2.5 px-4 rounded-md transition duration-200"
+                                                            data-name="{{ $item->nama_lokasi }}">
                                                         <i class="fas fa-trash mr-2"></i>
                                                         Hapus Lokasi
                                                     </button>
@@ -338,3 +353,47 @@
         background: #a8a8a8;
     }
 </style>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // SweetAlert Delete Confirmation
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const form = this.closest('.delete-form');
+            const lokasiName = this.getAttribute('data-name');
+            
+            Swal.fire({
+                title: 'Apakah Anda yakin?',
+                text: `Lokasi "${lokasiName}" akan dihapus secara permanen!`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading
+                    Swal.fire({
+                        title: 'Menghapus...',
+                        text: 'Sedang memproses penghapusan data',
+                        icon: 'info',
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        willOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    // Submit form
+                    form.submit();
+                }
+            });
+        });
+    });
+});
+</script>
+@endpush

@@ -4,6 +4,8 @@
 
 @push('head')
 <meta name="csrf-token" content="{{ csrf_token() }}">
+<!-- SweetAlert2 CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 @endpush
 
 @section('content')
@@ -16,7 +18,7 @@
                 <p class="text-sm text-gray-600">Catat aktivitas dan pembelajaran harian Anda</p>
             </div>
             <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 mt-4 sm:mt-0">
-                <button onclick="toggleForm()" id="toggleBtn" class="bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 text-sm transition-colors duration-200">
+                <button onclick="openFormModal()" id="toggleBtn" class="bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 text-sm transition-colors duration-200">
                     <i class="fas fa-plus mr-2"></i>Tambah Kegiatan
                 </button>
                 <button onclick="exportPdf()" class="bg-red-600 text-white px-6 py-2.5 rounded-lg hover:bg-red-700 text-sm transition-colors duration-200">
@@ -24,84 +26,6 @@
                 </button>
             </div>
         </div>
-        
-        <!-- Form Tambah Kegiatan -->
-        <form id="kegiatanForm" class="hidden space-y-4 mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200" action="{{ route('peserta.kegiatan.store') }}" method="POST" enctype="multipart/form-data">
-            @csrf
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <!-- Tanggal -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
-                    <input type="date" name="tanggal" value="{{ \Carbon\Carbon::now('Asia/Jakarta')->format('Y-m-d') }}" required
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                </div>
-
-                <!-- Jam Mulai -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Jam Mulai</label>
-                    <input type="time" name="jam_mulai" value="{{ \Carbon\Carbon::now('Asia/Jakarta')->format('H:i') }}" required
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                </div>
-
-                <!-- Jam Selesai -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Jam Selesai </label>
-                    <input type="time" name="jam_selesai"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                </div>
-            </div>
-
-            <!-- Kategori Aktivitas -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Kategori Aktivitas</label>
-                <select name="kategori_aktivitas" required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    <option value="">Pilih Kategori...</option>
-                    <option value="meeting">Meeting</option>
-                    <option value="pengerjaan_tugas">Pengerjaan Tugas</option>
-                    <option value="dokumentasi">Dokumentasi</option>
-                    <option value="laporan">Laporan</option>
-                </select>
-            </div>
-
-            <!-- Judul Kegiatan -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Judul Kegiatan</label>
-                <input type="text" name="judul" required placeholder="Masukkan judul kegiatan..."
-                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-            </div>
-
-            <!-- Deskripsi Kegiatan -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Deskripsi Kegiatan</label>
-                <textarea name="deskripsi" rows="4" required placeholder="Jelaskan detail kegiatan yang dilakukan..."
-                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
-            </div>
-
-            <!-- Upload Bukti -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Upload Bukti (Optional)</label>
-                <div class="border-2 border-dashed border-gray-300 rounded-lg p-4" id="fileUpload">
-                    <div class="text-center">
-                        <i class="fas fa-cloud-upload-alt text-gray-400 text-3xl mb-2"></i>
-                        <p class="text-sm text-gray-600 mb-2">Klik untuk upload file atau drag & drop</p>
-                        <p class="text-xs text-gray-500">Foto, PDF, DOC, DOCX (Max 5MB)</p>
-                        <input type="file" name="bukti" class="hidden" accept="image/*,.pdf,.doc,.docx" id="buktiInput">
-                    </div>
-                </div>
-                <div id="filePreview" class="hidden mt-3"></div>
-            </div>
-
-            <!-- Submit Button -->
-            <div class="flex gap-3 pt-4">
-                <button type="submit" class="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white font-bold py-3 px-6 rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200">
-                    <i class="fas fa-save mr-2"></i>Simpan Kegiatan
-                </button>
-                <button type="button" onclick="cancelForm()" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200">
-                    Batal
-                </button>
-            </div>
-        </form>
     </div>
 
     <!-- Filter & Daftar Kegiatan -->
@@ -262,89 +186,100 @@
         </div>
 
         <!-- Mobile Cards -->
-        <div class="md:hidden space-y-6" id="kegiatanMobileList">
+        <div class="md:hidden space-y-4" id="kegiatanMobileList">
             @php 
                 $groupedKegiatansMobile = $kegiatans->groupBy(function($kegiatan) {
                     return \Carbon\Carbon::parse($kegiatan->tanggal)->format('Y-m-d');
                 })->sortKeys();
             @endphp
             
-            @forelse($groupedKegiatansMobile as $tanggal => $kegiatanGroup)
-                <!-- Header Tanggal -->
-                <div class="bg-gray-50 rounded-lg p-3 border-l-4 border-blue-500">
-                    <h3 class="font-semibold text-gray-900">
-                        {{ Carbon\Carbon::parse($kegiatanGroup->first()->tanggal)->format('d M Y') }}
-                    </h3>
-                    <p class="text-sm text-gray-500">
-                        {{ Carbon\Carbon::parse($kegiatanGroup->first()->tanggal)->locale('id')->isoFormat('dddd') }}
-                        • {{ $kegiatanGroup->count() }} kegiatan
-                    </p>
-                </div>
-                
-                <!-- Kegiatan Cards -->
-                <div class="space-y-3 ml-4">
-                    @foreach($kegiatanGroup as $kegiatan)
-                    <div class="border border-gray-200 rounded-lg p-4 bg-white">
-                        <div class="flex items-start justify-between mb-3">
-                            <div class="flex-1">
-                                <div class="flex items-center space-x-2 mb-1">
-                                    <h4 class="font-medium text-gray-900">{{ $kegiatan->judul }}</h4>
+            @forelse($groupedKegiatansMobile as $index => $kegiatanGroup)
+                <!-- Date Group Card -->
+                <div class="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                    <!-- Header Tanggal - Accordion Toggle -->
+                    <button onclick="toggleAccordion('accordion-{{ $index }}')" class="w-full bg-gray-50 border-b border-gray-200 p-4 border-l-4 border-blue-500 flex items-center justify-between hover:bg-gray-100 transition-colors">
+                        <div class="text-left">
+                            <div class="text-sm font-semibold text-gray-900">
+                                {{ Carbon\Carbon::parse($kegiatanGroup->first()->tanggal)->format('d M Y') }}
+                            </div>
+                            <div class="text-xs text-gray-500">
+                                {{ Carbon\Carbon::parse($kegiatanGroup->first()->tanggal)->locale('id')->isoFormat('dddd') }} • {{ $kegiatanGroup->count() }} kegiatan
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-down text-gray-600 transition-transform duration-200" id="icon-accordion-{{ $index }}"></i>
+                    </button>
+                    
+                    <!-- Kegiatan List - Mirip rows di desktop -->
+                    <div id="accordion-{{ $index }}" class="divide-y divide-gray-200">
+                        @foreach($kegiatanGroup as $kegiatan)
+                        <div class="p-4 hover:bg-gray-50">
+                            <!-- Waktu -->
+                            <div class="flex items-start justify-between mb-3">
+                                <div class="text-sm font-medium text-gray-900">
+                                    <i class="fas fa-clock text-gray-400 mr-1"></i>
+                                    {{ $kegiatan->formatted_jam_mulai }}
+                                    @if($kegiatan->jam_selesai)
+                                        - {{ $kegiatan->formatted_jam_selesai }}
+                                    @endif
+                                </div>
+                                <!-- Aksi buttons di pojok kanan -->
+                                <div class="flex items-center space-x-2">
+                                    <button onclick="viewDetail({{ $kegiatan->id }})" class="text-blue-600 hover:text-blue-900 p-1" title="Lihat Detail">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button onclick="editKegiatan({{ $kegiatan->id }})" class="text-green-600 hover:text-green-900 p-1" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button onclick="deleteKegiatan({{ $kegiatan->id }})" class="text-red-600 hover:text-red-900 p-1" title="Hapus">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Kegiatan & Kategori -->
+                            <div class="mb-3">
+                                <div class="text-sm font-medium text-gray-900 mb-2">{{ $kegiatan->judul }}</div>
+                                <div>
                                     <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                         {{ $kegiatan->formatted_kategori_aktivitas }}
                                     </span>
                                 </div>
-                                <div class="flex items-center space-x-2 text-sm text-gray-500 mb-2">
-                                    <i class="fas fa-clock"></i>
-                                    <span>
-                                        {{ $kegiatan->formatted_jam_mulai }}
-                                        @if($kegiatan->jam_selesai)
-                                            - {{ $kegiatan->formatted_jam_selesai }}
-                                        @endif
+                            </div>
+                            
+                            <!-- Deskripsi -->
+                            <div class="text-sm text-gray-700 mb-3 leading-relaxed">
+                                {{ Str::limit($kegiatan->deskripsi, 200) }}
+                            </div>
+                            
+                            <!-- Bukti -->
+                            <div class="pt-2">
+                                @if($kegiatan->bukti)
+                                    <div class="flex items-center space-x-2">
+                                        <a href="{{ asset('storage/' . $kegiatan->bukti) }}" 
+                                           target="_blank" 
+                                           class="flex items-center space-x-2 text-blue-600 hover:underline">
+                                            @if($kegiatan->is_bukti_image)
+                                                <i class="fas fa-file-image text-blue-600"></i>
+                                            @elseif($kegiatan->bukti_file_type == 'pdf')
+                                                <i class="fas fa-file-pdf text-red-600"></i>
+                                            @else
+                                                <i class="fas fa-file-word text-blue-600"></i>
+                                            @endif
+                                            <span class="text-sm text-gray-600">{{ $kegiatan->bukti_file_name }}</span>
+                                        </a>
+                                    </div>
+                                @else
+                                    <span class="text-gray-400 text-sm">
+                                        <i class="fas fa-file-slash mr-1"></i>Tidak ada bukti
                                     </span>
-                                    @if($kegiatan->duration)
-                                        <span class="text-xs text-gray-400">({{ $kegiatan->duration }})</span>
-                                    @endif
-                                </div>
-                            </div>
-                            <div class="flex items-center space-x-2">
-                                <button onclick="viewDetail({{ $kegiatan->id }})" class="text-blue-600 hover:text-blue-900 p-1">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button onclick="editKegiatan({{ $kegiatan->id }})" class="text-green-600 hover:text-green-900 p-1">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button onclick="deleteKegiatan({{ $kegiatan->id }})" class="text-red-600 hover:text-red-900 p-1">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                                @endif
                             </div>
                         </div>
-                        
-                        <div class="text-sm text-gray-700 mb-3">{{ Str::limit($kegiatan->deskripsi, 100) }}</div>
-                        
-                        <div class="flex items-center justify-between">
-                            @if($kegiatan->bukti)
-                                <div class="flex items-center space-x-2">
-                                    @if($kegiatan->is_bukti_image)
-                                        <i class="fas fa-file-image text-blue-600"></i>
-                                    @elseif($kegiatan->bukti_file_type == 'pdf')
-                                        <i class="fas fa-file-pdf text-red-600"></i>
-                                    @else
-                                        <i class="fas fa-file-word text-blue-600"></i>
-                                    @endif
-                                    <span class="text-sm text-gray-600">{{ $kegiatan->bukti_file_name }}</span>
-                                </div>
-                            @else
-                                <span class="text-gray-400 text-sm">Tidak ada bukti</span>
-                            @endif
-                            <button onclick="viewDetail({{ $kegiatan->id }})" class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">
-                                Lihat Detail
-                            </button>
-                        </div>
+                        @endforeach
                     </div>
-                    @endforeach
                 </div>
             @empty
-            <div class="text-center py-8">
+            <div class="text-center py-12 bg-white rounded-lg border border-gray-200">
                 <i class="fas fa-clipboard-list text-gray-400 text-4xl mb-4"></i>
                 <h3 class="text-lg font-medium text-gray-900 mb-2">Belum Ada Kegiatan</h3>
                 <p class="text-gray-600">Mulai tambahkan kegiatan harian Anda</p>
@@ -384,33 +319,157 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Form Tambah/Edit Kegiatan -->
+<div id="formModal" class="fixed inset-0 bg-white bg-opacity-40 backdrop-blur-md hidden z-50 overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen p-4" onclick="event.stopPropagation()">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto relative">
+            <!-- Modal Header -->
+            <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-xl">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <i class="fas fa-plus-circle mr-2 text-blue-600"></i>
+                    <span id="modalTitle">Tambah Kegiatan Baru</span>
+                </h3>
+                <button onclick="closeFormModal()" class="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full p-2 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <form id="kegiatanForm" action="{{ route('peserta.kegiatan.store') }}" method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
+                @csrf
+                <input type="hidden" name="_method" value="POST" id="formMethod">
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Tanggal -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal <span class="text-red-500">*</span></label>
+                        <input type="date" name="tanggal" id="inputTanggal" value="{{ \Carbon\Carbon::now('Asia/Jakarta')->format('Y-m-d') }}" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <!-- Jam Mulai -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Jam Mulai <span class="text-red-500">*</span></label>
+                        <input type="time" name="jam_mulai" id="inputJamMulai" value="{{ \Carbon\Carbon::now('Asia/Jakarta')->format('H:i') }}" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <!-- Jam Selesai -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Jam Selesai</label>
+                        <input type="time" name="jam_selesai" id="inputJamSelesai"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+
+                <!-- Kategori Aktivitas -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Kategori Aktivitas <span class="text-red-500">*</span></label>
+                    <select name="kategori_aktivitas" id="inputKategori" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Pilih Kategori...</option>
+                        <option value="meeting">Meeting</option>
+                        <option value="pengerjaan_tugas">Pengerjaan Tugas</option>
+                        <option value="dokumentasi">Dokumentasi</option>
+                        <option value="laporan">Laporan</option>
+                    </select>
+                </div>
+
+                <!-- Judul Kegiatan -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Judul Kegiatan <span class="text-red-500">*</span></label>
+                    <input type="text" name="judul" id="inputJudul" required placeholder="Masukkan judul kegiatan..."
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <!-- Deskripsi Kegiatan -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Deskripsi Kegiatan <span class="text-red-500">*</span></label>
+                    <textarea name="deskripsi" id="inputDeskripsi" rows="4" required placeholder="Jelaskan detail kegiatan yang dilakukan..."
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                </div>
+
+                <!-- Upload Bukti -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Upload Bukti (Opsional)</label>
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-blue-400 transition-colors cursor-pointer" id="fileUpload">
+                        <div class="text-center">
+                            <i class="fas fa-cloud-upload-alt text-gray-400 text-3xl mb-2"></i>
+                            <p class="text-sm text-gray-600 mb-2">Klik untuk upload file atau drag & drop</p>
+                            <p class="text-xs text-gray-500">Foto, PDF, DOC, DOCX (Max 5MB)</p>
+                            <input type="file" name="bukti" class="hidden" accept="image/*,.pdf,.doc,.docx" id="buktiInput">
+                        </div>
+                    </div>
+                    <div id="filePreview" class="hidden mt-3 p-3 bg-gray-50 rounded-lg"></div>
+                </div>
+
+                <!-- Modal Footer - Fixed at bottom -->
+                <div class="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 -mx-6 -mb-6 rounded-b-xl">
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" onclick="closeFormModal()" class="px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                            <i class="fas fa-times mr-2"></i>Batal
+                        </button>
+                        <button type="submit" class="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-md">
+                            <i class="fas fa-save mr-2"></i>Simpan
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
+<!-- SweetAlert2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    // Toggle form visibility
-    function toggleForm() {
+    // Open form modal for creating new activity
+    function openFormModal() {
+        const modal = document.getElementById('formModal');
         const form = document.getElementById('kegiatanForm');
-        const btn = document.getElementById('toggleBtn');
+        const modalTitle = document.getElementById('modalTitle');
         
-        if (form.classList.contains('hidden')) {
-            form.classList.remove('hidden');
-            btn.innerHTML = '<i class="fas fa-minus mr-2"></i>Tutup Form';
-            btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-            btn.classList.add('bg-gray-600', 'hover:bg-gray-700');
-        } else {
-            form.classList.add('hidden');
-            btn.innerHTML = '<i class="fas fa-plus mr-2"></i>Tambah Kegiatan';
-            btn.classList.remove('bg-gray-600', 'hover:bg-gray-700');
-            btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        // Reset form
+        form.reset();
+        form.action = "{{ route('peserta.kegiatan.store') }}";
+        document.getElementById('formMethod').value = 'POST';
+        
+        // Set default values
+        document.getElementById('inputTanggal').value = "{{ \Carbon\Carbon::now('Asia/Jakarta')->format('Y-m-d') }}";
+        document.getElementById('inputJamMulai').value = "{{ \Carbon\Carbon::now('Asia/Jakarta')->format('H:i') }}";
+        
+        // Update modal title
+        if (modalTitle) {
+            modalTitle.textContent = 'Tambah Kegiatan Baru';
         }
+        
+        // Clear file preview
+        if (typeof removeFilePreview === 'function') {
+            removeFilePreview();
+        }
+        
+        // Show modal
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    // Close form modal
+    function closeFormModal() {
+        const modal = document.getElementById('formModal');
+        modal.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+    }
+
+    // Toggle form visibility (kept for backward compatibility, now opens modal)
+    function toggleForm() {
+        openFormModal();
     }
 
     // Cancel form
     function cancelForm() {
-        document.getElementById('kegiatanForm').reset();
-        toggleForm();
-        removeFilePreview();
+        closeFormModal();
     }
 
     // File upload handling
@@ -813,23 +872,36 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Populate form with data
-                document.querySelector('input[name="tanggal"]').value = data.data.tanggal;
-                document.querySelector('input[name="jam_mulai"]').value = data.data.jam_mulai;
-                document.querySelector('input[name="jam_selesai"]').value = data.data.jam_selesai || '';
-                document.querySelector('input[name="judul"]').value = data.data.judul;
-                document.querySelector('textarea[name="deskripsi"]').value = data.data.deskripsi;
-                document.querySelector('select[name="kategori_aktivitas"]').value = data.data.kategori_aktivitas;
+                // Open modal first
+                openFormModal();
                 
-                // Show form if hidden
-                if (document.getElementById('kegiatanForm').classList.contains('hidden')) {
-                    toggleForm();
-                }
-                
-                // Change form to edit mode
-                const form = document.getElementById('kegiatanForm');
-                form.setAttribute('data-edit-id', id);
-                form.querySelector('button[type="submit"]').innerHTML = '<i class="fas fa-save mr-2"></i>Update Kegiatan';
+                // Wait a bit for modal to open, then populate
+                setTimeout(() => {
+                    // Populate form with data
+                    document.getElementById('inputTanggal').value = data.data.tanggal;
+                    document.getElementById('inputJamMulai').value = data.data.jam_mulai;
+                    document.getElementById('inputJamSelesai').value = data.data.jam_selesai || '';
+                    document.getElementById('inputJudul').value = data.data.judul;
+                    document.getElementById('inputDeskripsi').value = data.data.deskripsi;
+                    document.getElementById('inputKategori').value = data.data.kategori_aktivitas;
+                    
+                    // Change form to edit mode
+                    const form = document.getElementById('kegiatanForm');
+                    form.action = `{{ route("peserta.kegiatan.update", ":id") }}`.replace(':id', id);
+                    document.getElementById('formMethod').value = 'PUT';
+                    
+                    // Update modal title
+                    const modalTitle = document.getElementById('modalTitle');
+                    if (modalTitle) {
+                        modalTitle.textContent = 'Edit Kegiatan';
+                    }
+                    
+                    // Update submit button
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Update Kegiatan';
+                    }
+                }, 100);
             } else {
                 showAlert('error', data.message);
             }
@@ -841,30 +913,69 @@
     }
 
     function deleteKegiatan(id) {
-        if (confirm('Apakah Anda yakin ingin menghapus kegiatan ini?')) {
-            fetch(`{{ route("peserta.kegiatan.destroy", ":id") }}`.replace(':id', id), {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showAlert('success', data.message);
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
-                } else {
-                    showAlert('error', data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showAlert('error', 'Terjadi kesalahan saat menghapus kegiatan.');
-            });
-        }
+        Swal.fire({
+            title: 'Hapus Kegiatan?',
+            text: 'Data kegiatan yang dihapus tidak dapat dikembalikan!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: '<i class="fas fa-trash mr-2"></i>Ya, Hapus!',
+            cancelButtonText: '<i class="fas fa-times mr-2"></i>Batal',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Show loading
+                Swal.fire({
+                    title: 'Menghapus...',
+                    text: 'Mohon tunggu sebentar',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                fetch(`{{ route("peserta.kegiatan.destroy", ":id") }}`.replace(':id', id), {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            title: 'Berhasil!',
+                            text: data.message,
+                            icon: 'success',
+                            confirmButtonColor: '#2563eb',
+                            timer: 2000,
+                            timerProgressBar: true
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Gagal!',
+                            text: data.message,
+                            icon: 'error',
+                            confirmButtonColor: '#2563eb'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Terjadi kesalahan saat menghapus kegiatan.',
+                        icon: 'error',
+                        confirmButtonColor: '#2563eb'
+                    });
+                });
+            }
+        });
     }
 
     function exportPdf() {
@@ -889,6 +1000,42 @@
             alertDiv.remove();
         }, 3000);
     }
+
+    // Accordion toggle function
+    function toggleAccordion(id) {
+        const content = document.getElementById(id);
+        const icon = document.getElementById('icon-' + id);
+        
+        if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+            content.style.maxHeight = '0px';
+            content.style.overflow = 'hidden';
+            icon.style.transform = 'rotate(0deg)';
+        } else {
+            content.style.maxHeight = content.scrollHeight + 'px';
+            content.style.overflow = 'visible';
+            icon.style.transform = 'rotate(180deg)';
+        }
+    }
+
+    // Initialize accordions - first one open by default
+    document.addEventListener('DOMContentLoaded', function() {
+        const accordions = document.querySelectorAll('[id^="accordion-"]');
+        accordions.forEach((accordion, index) => {
+            if (index === 0) {
+                // Open first accordion by default
+                accordion.style.maxHeight = accordion.scrollHeight + 'px';
+                const iconId = 'icon-' + accordion.id;
+                const icon = document.getElementById(iconId);
+                if (icon) {
+                    icon.style.transform = 'rotate(180deg)';
+                }
+            } else {
+                // Close others
+                accordion.style.maxHeight = '0px';
+                accordion.style.overflow = 'hidden';
+            }
+        });
+    });
 
     // Close modal when clicking outside
     document.getElementById('detailModal').addEventListener('click', function(e) {

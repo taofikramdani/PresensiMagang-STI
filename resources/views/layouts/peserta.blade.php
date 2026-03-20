@@ -65,6 +65,9 @@
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
+    <!-- FullCalendar CSS -->
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
+    
     @stack('styles')
 </head>
 <body class="bg-gray-50 font-sans antialiased">
@@ -548,6 +551,9 @@
             setTimeout(checkAndFixFontAwesome, 1000);
         });
     </script>
+    
+    <!-- FullCalendar JS -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
     
     @stack('scripts')
 </body>

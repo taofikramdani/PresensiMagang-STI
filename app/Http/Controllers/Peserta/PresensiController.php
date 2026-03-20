@@ -7,6 +7,8 @@ use App\Models\Lokasi;
 use App\Models\Presensi;
 use App\Models\Peserta;
 use App\Models\JamKerja;
+use App\Models\Setting;
+use App\Helpers\HolidayHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -32,6 +34,16 @@ class PresensiController extends Controller
 
         // Cek apakah hari ini sudah ada status izin/sakit dari perizinan
         $sudahIzinHariIni = $presensiHariIni && in_array($presensiHariIni->status, ['izin', 'sakit']);
+
+        // CEK HARI LIBUR NASIONAL
+        $holidayInfo = HolidayHelper::isTodayHoliday();
+        $isWeekend = HolidayHelper::isWeekend();
+        
+        // Get next holiday information
+        $nextHoliday = HolidayHelper::getNextHoliday();
+        
+        // Get holidays this month
+        $holidaysThisMonth = HolidayHelper::getHolidaysForCurrentMonth();
 
         // Get jam kerja aktif berdasarkan hari ini
         $hariMap = [
@@ -73,7 +85,17 @@ class PresensiController extends Controller
             ];
         }
         
-        return view('peserta.presensi.index', compact('presensiHariIni', 'lokasi', 'jamKerja', 'peserta', 'sudahIzinHariIni'));
+        return view('peserta.presensi.index', compact(
+            'presensiHariIni', 
+            'lokasi', 
+            'jamKerja', 
+            'peserta', 
+            'sudahIzinHariIni',
+            'holidayInfo',
+            'isWeekend',
+            'nextHoliday',
+            'holidaysThisMonth'
+        ));
     } 
     
     public function store(Request $request)
@@ -196,6 +218,33 @@ class PresensiController extends Controller
             ]);
         }
 
+        // CEK HARI LIBUR NASIONAL TERLEBIH DAHULU
+        $holidayCheck = HolidayHelper::isTodayHoliday();
+        if ($holidayCheck['is_holiday']) {
+            Log::info('Hari libur nasional detected - BLOCKING PRESENSI', [
+                'holiday_name' => $holidayCheck['name'],
+                'date' => $holidayCheck['date']
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => "Hari ini adalah hari libur nasional: {$holidayCheck['name']}. Tidak dapat melakukan presensi."
+            ]);
+        }
+
+        // CEK WEEKEND
+        if (HolidayHelper::isWeekend()) {
+            Log::info('Weekend detected - BLOCKING PRESENSI', [
+                'date' => $hariIniJakarta,
+                'day' => Carbon::now('Asia/Jakarta')->format('l')
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Hari ini adalah akhir pekan. Tidak dapat melakukan presensi.'
+            ]);
+        }
+
         // Get jam kerja aktif berdasarkan hari ini - VALIDASI INI HARUS LEBIH DULU
         $hariMap = [
             'monday' => 'senin',
@@ -224,7 +273,7 @@ class PresensiController extends Controller
                 return in_array($hariIni, $hariKerja);
             });
             
-        // PRIORITAS PERTAMA: Cek apakah hari ini adalah hari kerja
+        // PRIORITAS KEDUA: Cek apakah hari ini adalah hari kerja
         if (!$jamKerja) {
             Log::info('Hari ini bukan hari kerja - BLOCKING PRESENSI', [
                 'hari_ini' => $hariIni,
@@ -237,7 +286,7 @@ class PresensiController extends Controller
             ]);
         }
 
-        // BARU CEK STATUS IZIN/SAKIT setelah memastikan ini hari kerja
+        // BARU CEK STATUS IZIN/SAKIT setelah memastikan ini bukan hari libur dan hari kerja
         if ($presensiHariIni && in_array($presensiHariIni->status, ['izin', 'sakit'])) {
             Log::info('Status izin/sakit detected', [
                 'peserta_id' => $peserta->id,
@@ -505,5 +554,83 @@ class PresensiController extends Controller
                 'protocol' => request()->secure() || request()->header('x-forwarded-proto') === 'https' ? 'https' : 'http'
             ]
         ]);
+    }
+    
+    /**
+     * Get holiday information
+     */
+    public function getHolidayInfo()
+    {
+        try {
+            $holidayInfo = HolidayHelper::isTodayHoliday();
+            $isWeekend = HolidayHelper::isWeekend();
+            $nextHoliday = HolidayHelper::getNextHoliday();
+            $holidaysThisMonth = HolidayHelper::getHolidaysForCurrentMonth();
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'today' => [
+                        'is_holiday' => $holidayInfo['is_holiday'],
+                        'is_weekend' => $isWeekend,
+                        'is_free_day' => $holidayInfo['is_holiday'] || $isWeekend,
+                        'holiday_name' => $holidayInfo['name'],
+                        'date' => $holidayInfo['date']
+                    ],
+                    'next_holiday' => $nextHoliday,
+                    'holidays_this_month' => $holidaysThisMonth
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error getting holiday info: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengambil informasi hari libur'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get presensi feature settings
+     */
+    public function getSettings()
+    {
+        try {
+            $isHttps = request()->secure() || request()->header('x-forwarded-proto') === 'https';
+            
+            // Get settings from database
+            $enableGPS = Setting::get('enable_gps_tracking', true);
+            $enablePhoto = Setting::get('enable_photo_capture', true);
+            $forceHttps = Setting::get('force_https_for_features', false);
+            
+            // If force HTTPS is enabled, disable features on HTTP
+            if ($forceHttps && !$isHttps) {
+                $enableGPS = false;
+                $enablePhoto = false;
+            }
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'enable_gps_tracking' => $enableGPS,
+                    'enable_photo_capture' => $enablePhoto,
+                    'is_https' => $isHttps,
+                    'force_https_for_features' => $forceHttps,
+                    'message' => !$isHttps && $forceHttps 
+                        ? 'Fitur GPS dan Foto tidak tersedia karena menggunakan koneksi HTTP' 
+                        : null
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error getting presensi settings: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengambil pengaturan'
+            ], 500);
+        }
     }
 }

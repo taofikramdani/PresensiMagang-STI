@@ -150,28 +150,34 @@
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <h3 class="text-sm font-semibold text-gray-900 mb-3">Foto Presensi</h3>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-2 md:grid-cols-2 gap-4">
                 @if($presensi->foto_masuk)
                     <div>
                         <h4 class="text-xs font-medium text-gray-600 mb-2">Foto Check In</h4>
-                        <div class="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                        <div class="w-full h-32 bg-gray-100 rounded-lg overflow-hidden hover:ring-2 hover:ring-blue-500 transition-all">
                             <img src="{{ $presensi->getFotoMasukUrl() }}" 
                                  alt="Foto Check In" 
-                                 class="w-full h-full object-cover cursor-pointer"
+                                 class="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
                                  onclick="openImageModal(this.src, 'Foto Check In')">
                         </div>
+                        <p class="text-xs text-gray-500 text-center mt-1">
+                            <i class="fas fa-search-plus mr-1"></i>Klik untuk melihat
+                        </p>
                     </div>
                 @endif
 
                 @if($presensi->foto_keluar)
                     <div>
                         <h4 class="text-xs font-medium text-gray-600 mb-2">Foto Check Out</h4>
-                        <div class="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                        <div class="w-full h-32 bg-gray-100 rounded-lg overflow-hidden hover:ring-2 hover:ring-blue-500 transition-all">
                             <img src="{{ $presensi->getFotoKeluarUrl() }}" 
                                  alt="Foto Check Out" 
-                                 class="w-full h-full object-cover cursor-pointer"
+                                 class="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
                                  onclick="openImageModal(this.src, 'Foto Check Out')">
                         </div>
+                        <p class="text-xs text-gray-500 text-center mt-1">
+                            <i class="fas fa-search-plus mr-1"></i>Klik untuk melihat
+                        </p>
                     </div>
                 @endif
             </div>

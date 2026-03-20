@@ -19,7 +19,12 @@ class DashboardController extends Controller
         $today = Carbon::today();
         
         // Get today's attendance
-        $presensiHariIni = null; // Will be implemented when Presensi model exists
+        $presensiHariIni = null;
+        if ($user->peserta) {
+            $presensiHariIni = \App\Models\Presensi::where('peserta_id', $user->peserta->id)
+                ->whereDate('tanggal', $today)
+                ->first();
+        }
         
         // Get working hours from database based on today
         $hariMap = [
@@ -55,6 +60,9 @@ class DashboardController extends Controller
             'izin' => 1
         ];
         
-        return view('peserta.dashboard', compact('presensiHariIni', 'statistik', 'jamKerja'));
+        // Get active location
+        $lokasi = \App\Models\Lokasi::where('is_active', true)->first();
+        
+        return view('peserta.dashboard', compact('presensiHariIni', 'statistik', 'jamKerja', 'lokasi'));
     }
 }

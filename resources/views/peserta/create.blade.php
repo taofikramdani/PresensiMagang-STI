@@ -59,8 +59,13 @@
                                name="username" 
                                id="username" 
                                value="{{ old('username') }}"
+                               pattern="^[^\s]+$"
+                               title="Username tidak boleh mengandung spasi"
                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('username') border-red-500 @enderror"
                                required>
+                        <p class="mt-1 text-xs text-gray-500">
+                            <i class="fas fa-info-circle mr-1"></i>Username tidak boleh mengandung spasi
+                        </p>
                         @error('username')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
@@ -270,6 +275,40 @@ document.addEventListener('DOMContentLoaded', function() {
         // Clear tanggal_selesai if it's before the new tanggal_mulai
         if (tanggalSelesai.value && tanggalSelesai.value < this.value) {
             tanggalSelesai.value = '';
+        }
+    });
+    
+    // Username validation - no spaces allowed
+    const usernameInput = document.getElementById('username');
+    
+    usernameInput.addEventListener('input', function() {
+        const value = this.value;
+        const hasSpace = /\s/.test(value);
+        
+        if (hasSpace) {
+            this.classList.remove('border-gray-300', 'focus:border-blue-500');
+            this.classList.add('border-red-500');
+            
+            // Show warning message if not already shown
+            let warningMsg = this.parentElement.querySelector('.username-warning');
+            if (!warningMsg) {
+                warningMsg = document.createElement('p');
+                warningMsg.className = 'username-warning mt-1 text-sm text-red-600';
+                warningMsg.innerHTML = '<i class="fas fa-exclamation-circle mr-1"></i>Username tidak boleh mengandung spasi';
+                this.parentElement.appendChild(warningMsg);
+            }
+            
+            // Remove spaces automatically
+            this.value = value.replace(/\s/g, '');
+        } else {
+            this.classList.remove('border-red-500');
+            this.classList.add('border-gray-300');
+            
+            // Remove warning message if exists
+            const warningMsg = this.parentElement.querySelector('.username-warning');
+            if (warningMsg) {
+                warningMsg.remove();
+            }
         }
     });
 });

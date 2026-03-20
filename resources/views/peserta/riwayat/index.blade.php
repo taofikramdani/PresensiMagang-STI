@@ -250,7 +250,7 @@
     <!-- Daftar Presensi -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 animate-fade-in">
         <div class="p-6 border-b border-gray-200">
-            <h2 class="text-lg font-semibold text-gray-900">Daftar Presensi</h2>
+            <h2 class="text-lg font-semibold text-gray-900">Riwayat Presensi Anda</h2>
         </div>
         
         @if($riwayatPresensi->count() > 0)

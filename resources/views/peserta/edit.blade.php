@@ -60,8 +60,13 @@
                                name="username" 
                                id="username" 
                                value="{{ old('username', $peserta->user->name) }}"
+                               pattern="^[^\s]+$"
+                               title="Username tidak boleh mengandung spasi"
                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('username') border-red-500 @enderror"
                                required>
+                        <p class="mt-1 text-xs text-gray-500">
+                            <i class="fas fa-info-circle mr-1"></i>Username tidak boleh mengandung spasi
+                        </p>
                         @error('username')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
@@ -258,9 +263,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     const tanggalMulai = document.getElementById('tanggal_mulai');
     const tanggalSelesai = document.getElementById('tanggal_selesai');
-    const statusSelect = document.getElementById('status');
-    const originalTanggalSelesai = '{{ $peserta->tanggal_selesai ? $peserta->tanggal_selesai->format("Y-m-d") : "" }}';
-    const originalStatus = '{{ $peserta->status }}';
     
     // Update minimum date for tanggal_selesai when tanggal_mulai changes
     tanggalMulai.addEventListener('change', function() {
@@ -270,59 +272,46 @@ document.addEventListener('DOMContentLoaded', function() {
         if (tanggalSelesai.value && tanggalSelesai.value < this.value) {
             tanggalSelesai.value = '';
         }
-        
-        checkAutoStatusChange();
     });
-
-    // Check for auto status change when tanggal_selesai changes
-    tanggalSelesai.addEventListener('change', function() {
-        checkAutoStatusChange();
-    });
-    
-    // Function to check if status should be automatically changed
-    function checkAutoStatusChange() {
-        const newTanggalSelesai = tanggalSelesai.value;
-        const currentStatus = statusSelect.value;
-        const today = new Date().toISOString().split('T')[0];
-        
-        // Remove any existing warning
-        const existingWarning = document.getElementById('status-warning');
-        if (existingWarning) {
-            existingWarning.remove();
-        }
-        
-        // Check if tanggal selesai is extended and status is non-aktif
-        if (originalTanggalSelesai && newTanggalSelesai && 
-            newTanggalSelesai > originalTanggalSelesai && 
-            newTanggalSelesai >= today && 
-            originalStatus === 'non-aktif') {
-            
-            // Show warning that status will be automatically changed to aktif
-            const warningDiv = document.createElement('div');
-            warningDiv.id = 'status-warning';
-            warningDiv.className = 'mt-2 p-3 bg-green-50 border border-green-200 rounded-md';
-            warningDiv.innerHTML = `
-                <div class="flex">
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-info-circle text-green-400"></i>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm text-green-800">
-                            <strong>Info:</strong> Karena periode magang diperpanjang, status akan otomatis berubah menjadi <strong>AKTIF</strong>
-                        </p>
-                    </div>
-                </div>
-            `;
-            
-            // Insert after status select
-            statusSelect.parentNode.appendChild(warningDiv);
-        }
-    }
 
     // Set initial minimum date for tanggal_selesai
     if (tanggalMulai.value) {
         tanggalSelesai.setAttribute('min', tanggalMulai.value);
     }
+    
+    // Username validation - no spaces allowed
+    const usernameInput = document.getElementById('username');
+    
+    usernameInput.addEventListener('input', function() {
+        const value = this.value;
+        const hasSpace = /\s/.test(value);
+        
+        if (hasSpace) {
+            this.classList.remove('border-gray-300', 'focus:border-blue-500');
+            this.classList.add('border-red-500');
+            
+            // Show warning message if not already shown
+            let warningMsg = this.parentElement.querySelector('.username-warning');
+            if (!warningMsg) {
+                warningMsg = document.createElement('p');
+                warningMsg.className = 'username-warning mt-1 text-sm text-red-600';
+                warningMsg.innerHTML = '<i class="fas fa-exclamation-circle mr-1"></i>Username tidak boleh mengandung spasi';
+                this.parentElement.appendChild(warningMsg);
+            }
+            
+            // Remove spaces automatically
+            this.value = value.replace(/\s/g, '');
+        } else {
+            this.classList.remove('border-red-500');
+            this.classList.add('border-gray-300');
+            
+            // Remove warning message if exists
+            const warningMsg = this.parentElement.querySelector('.username-warning');
+            if (warningMsg) {
+                warningMsg.remove();
+            }
+        }
+    });
     
     // Check on initial load
     checkAutoStatusChange();

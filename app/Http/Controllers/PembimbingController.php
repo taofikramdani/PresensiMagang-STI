@@ -38,7 +38,7 @@ class PembimbingController extends Controller
 {
     $request->validate([
         'nama_lengkap' => 'required|string|max:255',
-        'username'     => 'required|string|max:255|unique:users,name', // cek ke kolom users.name
+        'username'     => 'required|string|max:255|unique:users,name|regex:/^[^\s]+$/', // cek ke kolom users.name
         'email'        => 'required|string|email|max:255|unique:users',
         'password'     => [
             'required',
@@ -53,7 +53,11 @@ class PembimbingController extends Controller
         'alamat'       => 'required|string',
         'status'       => 'required|in:aktif,non_aktif'
     ], [
-        'password.regex' => 'Password harus mengandung minimal 1 huruf kecil, 1 huruf besar, 1 angka, dan 1 simbol (@$!%*?&)'
+        'password.regex' => 'Password harus mengandung minimal 1 huruf kecil, 1 huruf besar, 1 angka, dan 1 simbol (@$!%*?&)',
+        'username.regex' => 'Username tidak boleh mengandung spasi.',
+        'username.unique' => 'Username sudah digunakan.',
+        'username.required' => 'Username wajib diisi.',
+        'username.max' => 'Username maksimal 255 karakter.'
     ]);
 
     // Buat akun user
@@ -110,7 +114,7 @@ class PembimbingController extends Controller
 {
     $request->validate([
         'nama_lengkap' => 'required|string|max:255',
-        'username'     => 'required|string|max:255|unique:users,name,' . $pembimbing->user_id, // cek ke users.name
+        'username'     => 'required|string|max:255|unique:users,name,' . $pembimbing->user_id . '|regex:/^[^\s]+$/', // cek ke users.name
         'email'        => 'required|string|email|max:255|unique:users,email,' . $pembimbing->user_id,
         'password'     => [
             'nullable',
@@ -125,7 +129,11 @@ class PembimbingController extends Controller
         'alamat'       => 'required|string',
         'status'       => 'required|in:aktif,non_aktif'
     ], [
-        'password.regex' => 'Password harus mengandung minimal 1 huruf kecil, 1 huruf besar, 1 angka, dan 1 simbol (@$!%*?&)'
+        'password.regex' => 'Password harus mengandung minimal 1 huruf kecil, 1 huruf besar, 1 angka, dan 1 simbol (@$!%*?&)',
+        'username.regex' => 'Username tidak boleh mengandung spasi.',
+        'username.unique' => 'Username sudah digunakan.',
+        'username.required' => 'Username wajib diisi.',
+        'username.max' => 'Username maksimal 255 karakter.'
     ]);
 
     // Update user account

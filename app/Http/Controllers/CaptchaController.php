@@ -26,10 +26,10 @@ class CaptchaController extends Controller
         // Colors
         $bgColor = imagecolorallocate($image, 255, 255, 255); // White background
         $textColor = imagecolorallocate($image, 0, 0, 0); // Black text
-        $lineColor = imagecolorallocate($image, 200, 200, 200); // Light gray lines
+        $lineColor = imagecolorallocate($image, rand(150, 220), rand(150, 220), rand(150, 220)); // Light gray lines
         
         // Add background noise (lines)
-        for ($i = 0; $i < 5; $i++) {
+        for ($i = 0; $i < 50; $i++) {
             imageline($image, rand(0, $width), rand(0, $height), rand(0, $width), rand(0, $height), $lineColor);
         }
         
@@ -41,7 +41,7 @@ class CaptchaController extends Controller
         imagestring($image, $fontSize, $x, $y, $captchaText, $textColor);
         
         // Add some dots for noise
-        for ($i = 0; $i < 30; $i++) {
+        for ($i = 0; $i < 200; $i++) {
             imagesetpixel($image, rand(0, $width), rand(0, $height), $lineColor);
         }
         

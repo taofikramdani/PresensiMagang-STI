@@ -248,12 +248,12 @@
                     </button>
                     <form action="{{ route('admin.peserta.destroy', $peserta) }}" 
                           method="POST" 
-                          class="w-full"
-                          onsubmit="return confirm('Apakah Anda yakin ingin menghapus data peserta ini? Data yang dihapus tidak dapat dikembalikan.')">
+                          class="w-full delete-form">
                         @csrf
                         @method('DELETE')
-                        <button type="submit" 
-                                class="w-full inline-flex items-center justify-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition-colors duration-200">
+                        <button type="button" 
+                                class="delete-btn w-full inline-flex items-center justify-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition-colors duration-200"
+                                data-name="{{ $peserta->nama_lengkap }}">
                             <i class="fas fa-trash mr-2"></i>
                             Hapus Data
                         </button>
@@ -273,4 +273,20 @@
         }
     }
 </style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // SweetAlert Delete Confirmation
+        document.querySelectorAll('.delete-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const form = this.closest('.delete-form');
+                const pesertaName = this.getAttribute('data-name');
+                
+                confirmDelete(form, pesertaName, 'Data peserta');
+            });
+        });
+    });
+</script>
 @endsection
